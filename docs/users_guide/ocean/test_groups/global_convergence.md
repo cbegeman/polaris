@@ -3,9 +3,13 @@
 # global_convergence
 
 The `global_convergence` test group implements convergence studies on the
-full globe.  Currently, the only test case is the advection of a cosine bell.
+full globe.  Three test cases from are included: the advection of a cosine bell,
+and two nonlinear steady-state geostrophic flows.
 
 (ocean-global-convergence-cosine-bell)=
+(ocean-global-convergence-geostrophic)=
+(ocean-global-convergence-geostrophic-wind)=
+
 
 ## cosine_bell
 
@@ -136,3 +140,23 @@ control the maximum number of cells that are allowed to be placed on a single
 core (before the test case will fail) with `max_cells_per_core`.  If there
 aren't enough processors to handle the finest resolution, you will see that
 the step (and therefore the test case) has failed.
+
+## geostrophic
+
+The `geostrophic` test case implements the "Global Steady State Nonlinear
+Zonal Geostrophic Flow" test case described in
+[Williamson et al. 1992](<https://doi.org/10.1016/S0021-9991(05)80016-6>)
+
+### initial state
+The test case is written such that the orientation of the flow can be modified.
+The Coriolis parameter can be defined in several orientations.
+
+$$
+u = u_0 (cos\theta cos\alpha + cos\gamma sin\theta sin\alpha
+v = -u_0 sin\gamma sin\alpha
+SSH = -(a \Omega u_0 + u_0^2/2)(-cos\lambda cos\theta sin\alpha + sin\theta cos\alpha)^2
+$$
+
+
+## geostrophic_wind
+

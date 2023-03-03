@@ -33,7 +33,8 @@ for config options and more details on the test case.
 ### mesh
 
 This step builds a global mesh with uniform resolution. The type of mesh
-depends on the mesh type (`qu` or `icos`).
+depends on the mesh type (`qu` or `icos`). The test group may be defined such
+that the mesh steps from the `cosine_bell` case are used for this test case.
 
 ### init
 

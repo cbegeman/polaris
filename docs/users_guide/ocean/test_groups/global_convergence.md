@@ -3,9 +3,13 @@
 # global_convergence
 
 The `global_convergence` test group implements convergence studies on the
-full globe.  Currently, the only test case is the advection of a cosine bell.
+full globe.  Three test cases from are included: the advection of a cosine bell,
+and two nonlinear steady-state geostrophic flows.
 
 (ocean-global-convergence-cosine-bell)=
+(ocean-global-convergence-geostrophic)=
+(ocean-global-convergence-geostrophic-wind)=
+
 
 ## cosine_bell
 
@@ -213,7 +217,100 @@ initial and final states on a lon-lat grid.
 
 ### cores
 
-The target and minimum number of cores are determined by `goal_cells_per_core`
-and `max_cells_per_core` from the `ocean` section of the config file,
-respectively. This ensures that the number of cells per core is roughly
-constant across the different resolutions in the convergence study.
+The number of cores (and the minimum) is proportional to the number of cells,
+so that the number of cells per core is roughly constant.  You can alter how
+many cells are allocated to each core with `goal_cells_per_core`.  You can
+control the maximum number of cells that are allowed to be placed on a single
+core (before the test case will fail) with `max_cells_per_core`.  If there
+aren't enough processors to handle the finest resolution, you will see that
+the step (and therefore the test case) has failed.
+
+## geostrophic
+
+The `geostrophic` test case implements the "Global Steady State Nonlinear
+Zonal Geostrophic Flow" test case described in
+[Williamson et al. 1992](<https://doi.org/10.1016/S0021-9991(05)80016-6>)
+
+### mesh
+
+The mesh is global and can be constructed either as quasi-uniform or
+icosahedral. At least three resolutions must be chosen for the mesh
+convergence study. The test group may be defined such that the mesh steps from
+the `cosine_bell` case are used for this test case.
+
+### vertical grid
+
+This test case only exercises the shallow water dynamics. As such, the minimum
+number of vertical levels may be used. The bottom depth is constant and the
+results should be insensitive to the choice of `bottom_depth`. The `cosine_bell`
+options may be used.
+
+### initial conditions
+
+The python code written by Darren Engwirda to set up this test case is a
+useful starting place:
+[SWE](<https://github.com/dengwirda/swe-python/blob/main/wtc.py>), especially
+lines 58-132. 
+
+The steady-state fields are given by the following equations:
+
+$$
+u = u_0 (cos\theta cos\alpha + cos\gamma sin\theta sin\alpha\\
+v = -u_0 sin\gamma sin\alpha\\
+h = h_0 - 1/g (a \Omega u_0 + u_0^2/2)(-cos\lambda cos\theta sin\alpha + sin\theta cos\alpha)^2
+$$
+
+where
+
+$$
+u_0 = 2 \pi a/(12 days)\\
+h_0 = 2.94e-4/g
+alpha = 0
+$$
+
+In this test case, the initial fields can be given their steady-state values
+and the simulation should not diverge significantly from those values.
+However, Williamson notes that the initial h field may be given a different
+value to avoid spurious gravity waves.
+
+In this test case, the bottom topography is flat so initial conditions are
+given for `bottomDepth` and `ssh` such that $h = bottomDepth + ssh$.
+
+The initial conditions must also include the coriolis parameter, given as:
+
+$$
+f = 2 \Omega (-cos\gamma cos\theta sin\alpha + sin\theta cos\alpha)
+$$
+
+In future work, alpha may be varied to test the sensitivity to orientation:
+
+$$
+\alpha = [0, 0.05, \pi/2 - 0.05, \pi/2]
+$$
+
+### forcing
+
+Probably N/A but see Williamson's text about the possibility of prescribing a wind field.
+
+### time step and run duration
+
+The model is run for 5 days. The time step should be adjusted in accordance
+with the resolution.
+
+### analysis
+
+For analysis we compute the $l_1$, $l_2$ and $l_{\inf}$ error norms of h and
+velocity relative to the steady-state solutions given above.
+
+First, each of these errors norms are plotted vs time for a given resolution.
+
+Then, mesh convergence is examined by plotting the $l_2$ and $l_{\inf}$ norms
+at day 5 vs resolution.
+
+### config options
+
+TBD
+
+### cores
+
+See `cosine_bell` description.

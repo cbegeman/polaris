@@ -117,6 +117,7 @@ we will make a new  file called `__init__.py` that will initially be empty.
 That's all it takes  to make `yet_another_channel` a new package in `polaris`.  
 It can be  imported with:
 
+`${POLARIS_HEAD}/polaris/ocean/__init__.py`
 ```python
 from polaris.ocean.tests import yet_another_channel
 ```
@@ -125,6 +126,7 @@ Each test group in `polaris` is a class that descends from the
 {py:class}`polaris.TestGroup` class.  Let's make a new class for the
 `yet_another_channel` test group in `__init__.py`:
 
+`${POLARIS_HEAD}/polaris/ocean/tests/yet_another_channel/__init__.py`
 ```python
 from polaris import TestGroup
 
@@ -174,8 +176,9 @@ test group exists. To do that, we need to open
 add an import for the new test group, and add an instance of the test group to the list of test
 groups in the ocean core:
 
+`${POLARIS_HEAD}/polaris/ocean/__init__.py`
 ```{code-block} python
-:emphasize-lines: 2, 18
+:emphasize-lines: 4, 21
 
 from polaris import Component
 from polaris.ocean.tests.baroclinic_channel import BaroclinicChannel
@@ -217,6 +220,7 @@ a new `Default` class in this file that descends from the
 `polaris/testcase.py` if you want to see the contents of `TestCase` if
 you're interested).
 
+`${POLARIS_HEAD}/polaris/ocean/tests/yet_another_channel/default/__init__.py`
 ```python
 from polaris import TestCase
 
@@ -247,7 +251,10 @@ this test case belongs to on to the base class's constructor
 
 And let's add the `Default` test case to the test group:
 
-```python
+`${POLARIS_HEAD}/polaris/ocean/tests/yet_another_channel/__init__.py`
+```{code-block} python
+:emphasize-lines: 1, 16-18
+
 from polaris.ocean.tests.yet_another_channel.default import Default
 from polaris import TestGroup
 
@@ -320,8 +327,9 @@ Let's say you want to support 3 resolutions in `yet_another_channel` test cases:
 1, 4 and 10 km.  We'll add resolution in km as a float parameter and attribute
 to the `default` test case:
 
+`${POLARIS_HEAD}/polaris/ocean/tests/yet_another_channel/default/__init__.py`
 ```{code-block} python
-:emphasize-lines: 12-15, 18, 27-28, 31-36
+:emphasize-lines: 1, 12-15, 18, 27-28, 31-38
 
 import os
 
@@ -377,7 +385,10 @@ any steps, change how we add ti to the `yet_another_channel` test group so we
 can see how the resolution will be specified.  We update `YetAnotherChannel` 
 toa dd a loop over resolutions as follows:
 
-```python
+`${POLARIS_HEAD}/polaris/ocean/tests/yet_another_channel/__init__.py`
+```{code-block} python
+:emphasize-lines: 16-18
+
 from polaris.ocean.tests.yet_another_channel.default import Default
 from polaris import TestGroup
 
@@ -484,6 +495,7 @@ resolution converted from km to m.  Then, we "cull" (remove) the the top and
 bottom row of cells in the y direction so the mesh is no longer periodic in
 that direction (`nonperiodic_y=True`).
 
+`${POLARIS_HEAD}/polaris/ocean/tests/yet_another_channel/initial_state.py`
 ```python
 from mpas_tools.io import write_netcdf
 from mpas_tools.mesh.conversion import convert, cull
@@ -494,6 +506,9 @@ from polaris.mesh.planar import compute_planar_hex_nx_ny
 
 
 class InitialState(Step):
+
+    ...
+
     def run(self):
         """
         Run this step of the test case
@@ -557,8 +572,8 @@ many test cases so it makes sense to put them directly in the
 `yet_another_channel.cfg`, they will automatically get read in and added to
 the config file for each test case as part of setup:
 
+`${POLARIS_HEAD}/polaris/ocean/tests/yet_another_channel/yet_another_channel.cfg`
 ```cfg
-...
 # config options for "yet another channel" testcases
 [yet_another_channel]
 
@@ -586,6 +601,7 @@ Returning to the `run()` method in the `initial_state` step, the code
 snippet below is an example of how to make use of the
 {ref}`dev-ocean-framework-vertical` to create the vertical coordinate:
 
+`${POLARIS_HEAD}/polaris/ocean/tests/yet_another_channel/initial_state.py`
 ```python
 import xarray as xr
 
@@ -612,8 +628,7 @@ This part of the step, too, relies on config options, this time from the
 `vertical_grid` section (see {ref}`dev-ocean-framework-vertical` for more on 
 this):
 
-```cfg
-# Options related to the vertical grid
+```cfg # Options related to the vertical grid
 [vertical_grid]
 
 # the type of vertical grid
@@ -666,6 +681,7 @@ following fields to `ds`:
 The next part of the `run()` method in the `initial_state` step is to
 define the initial condition:
 
+`${POLARIS_HEAD}/polaris/ocean/tests/yet_another_channel/initial_state.py`
 ```python
 import numpy as np
 import xarray as xr
@@ -676,7 +692,9 @@ from polaris import Step
 
 class InitialState(Step):
     def run(self):
+
         ...
+
         section = config['yet_another_channel']
         use_distances = section.getboolean('use_distances')
         gradient_width_dist = section.getfloat('gradient_width_dist')
@@ -762,7 +780,6 @@ from `yet_another_channel.cfg`, this time in a section specific to the test
 group that we therefore call `yet_another_channel`:
 
 ```cfg
-...
 # config options for "yet another channel" testcases
 [yet_another_channel]
 
@@ -816,6 +833,7 @@ It is helpful to make some plots of a few variables from the initial condition
 as a sanity check.  We do this using the visualization for
 {ref}`dev-visualization-planar`.
 
+`${POLARIS_HEAD}/polaris/ocean/tests/yet_another_channel/initial_state.py`
 ```python
 import cmocean  # noqa: F401
 
@@ -824,8 +842,13 @@ from polaris.viz import plot_horiz_field
 
 
 class InitialState(Step):
+
+    ...
+
     def run(self):
+
         ...
+
         ds_mesh['maxLevelCell'] = ds.maxLevelCell
 
         plot_horiz_field(ds, ds_mesh, 'temperature',
@@ -853,6 +876,7 @@ the connection between test cases and steps will be determined based on their
 inputs and outputs.  For this step, we add the following outputs in the
 constructor:
 
+`${POLARIS_HEAD}/polaris/ocean/tests/yet_another_channel/initial_state.py`
 ```python
 class InitialState(Step):
     ...
@@ -875,6 +899,7 @@ Returning to the `default` test case, we are now ready to add
 `initial_state`. In `polaris/ocean/tests/yet_another_channel/default/__init.py`,
 we add:
 
+`${POLARIS_HEAD}/polaris/ocean/tests/yet_another_channel/default/__init__.py`
 ```python
 from polaris import TestCase
 from polaris.ocean.tests.yet_another_channel.initial_state import InitialState

@@ -13,5 +13,6 @@ class YetAnotherChannel(TestGroup):
         """
         super().__init__(component=component, name='yet_another_channel')
 
-        self.add_test_case(
-            Default(test_group=self))
+        for resolution in [1., 4., 10.]:
+            self.add_test_case(
+                Default(test_group=self, resolution=resolution))

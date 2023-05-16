@@ -1,6 +1,7 @@
 import os
 
 from polaris import TestCase
+from polaris.ocean.tests.yet_another_channel.initial_state import InitialState
 
 
 class Default(TestCase):
@@ -36,3 +37,5 @@ class Default(TestCase):
         subdir = os.path.join(res_str, name)
         super().__init__(test_group=test_group, name=name,
                          subdir=subdir)
+        self.add_step(
+            InitialState(test_case=self, resolution=resolution))

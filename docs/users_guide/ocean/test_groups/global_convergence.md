@@ -255,17 +255,17 @@ lines 58-132.
 The steady-state fields are given by the following equations:
 
 $$
-u = u_0 (cos\theta cos\alpha + cos\gamma sin\theta sin\alpha\\
-v = -u_0 sin\gamma sin\alpha\\
-h = h_0 - 1/g (a \Omega u_0 + u_0^2/2)(-cos\lambda cos\theta sin\alpha + sin\theta cos\alpha)^2
+u & = u_0 (\cos\theta \cos\alpha + \cos\gamma \sin\theta \sin\alpha\\
+v & = -u_0 \sin\gamma \sin\alpha\\
+h & = h_0 - 1/g (a \Omega u_0 + u_0^2/2)(-\cos\lambda \cos\theta \sin\alpha + \sin\theta \cos\alpha)^2
 $$
 
 where
 
 $$
-u_0 = 2 \pi a/(12 days)\\
-h_0 = 2.94e-4/g
-alpha = 0
+u_0 & = 2 \pi a/(12 \textrm{ days})\\
+h_0 & = 2.94e-4/g \\
+\alpha & = 0
 $$
 
 In this test case, the initial fields can be given their steady-state values
@@ -274,12 +274,12 @@ However, Williamson notes that the initial h field may be given a different
 value to avoid spurious gravity waves.
 
 In this test case, the bottom topography is flat so initial conditions are
-given for `bottomDepth` and `ssh` such that $h = bottomDepth + ssh$.
+given for `bottomDepth` and `ssh` such that `h = bottomDepth + ssh`.
 
 The initial conditions must also include the coriolis parameter, given as:
 
 $$
-f = 2 \Omega (-cos\gamma cos\theta sin\alpha + sin\theta cos\alpha)
+f = 2 \Omega (-\cos\gamma \cos\theta \sin\alpha + \sin\theta \cos\alpha)
 $$
 
 In future work, alpha may be varied to test the sensitivity to orientation:

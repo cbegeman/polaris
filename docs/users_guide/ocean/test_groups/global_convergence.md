@@ -250,12 +250,12 @@ options may be used.
 The python code written by Darren Engwirda to set up this test case is a
 useful starting place:
 [SWE](<https://github.com/dengwirda/swe-python/blob/main/wtc.py>), especially
-lines 58-132. 
+lines 63-143. 
 
 The steady-state fields are given by the following equations:
 
 $$
-u & = u_0 (\cos\theta \cos\alpha + \cos\gamma \sin\theta \sin\alpha\\
+u & = u_0 (\cos\theta \cos\alpha + \cos\gamma \sin\theta \sin\alpha)\\
 v & = -u_0 \sin\gamma \sin\alpha\\
 h & = h_0 - 1/g (a \Omega u_0 + u_0^2/2)(-\cos\lambda \cos\theta \sin\alpha + \sin\theta \cos\alpha)^2
 $$

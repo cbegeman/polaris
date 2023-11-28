@@ -76,12 +76,9 @@ class SshForward(OceanModelStep):
 
         self.add_yaml_file('polaris.ocean.tasks.ice_shelf_2d',
                            'forward.yaml')
-        config = self.config
-        coord_type = config.get('vertical_grid', 'coord_type')
-        if coord_type == 'single_layer':
-            # TODO
-            self.add_yaml_file('polaris.ocean.tasks.ice_shelf_2d',
-                               'forward.yaml')
+
+        # config_run_duration: '0000_01:00:00'
+        # config_land_ice_flux_mode: 'standalone'
         # we don't want the global stats AM for this run
         # self.add_namelist_options(
         #     {'config_AM_globalStats_enable': '.false.'})
@@ -133,6 +130,10 @@ class SshForward(OceanModelStep):
         super().dynamic_model_config(at_setup)
 
         config = self.config
+
+        vert_levels = config.getfloat('vertical_grid', 'vert_levels')
+        if not at_setup and vert_levels == 1:
+            self.add_yaml_file('polaris.ocean.config', 'single_layer.yaml')
 
         options = dict()
 

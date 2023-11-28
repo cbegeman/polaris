@@ -114,6 +114,8 @@ class Forward(OceanModelStep):
         config = self.config
 
         options = dict()
+        # TODO config_use_tidal_forcing
+        # TODO config_use_time_varying_forcing
 
         # dt is proportional to resolution: default 30 seconds per km
         dt_per_km = config.getfloat('ice_shelf_2d', 'dt_per_km')

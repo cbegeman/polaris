@@ -85,9 +85,9 @@ class Init(Step):
         # points 1 and 2 are where angles on ice shelf are located.
         # point 3 is at the surface.
         # d variables are total water-column thickness below ice shelf
-        y1 = section.getfloat('y1')
-        y2 = section.getfloat('y2')
-        y3 = section.getfloat('y3')
+        y1 = section.getfloat('y1') * 1e3
+        y2 = section.getfloat('y2') * 1e3
+        y3 = section.getfloat('y3') * 1e3
         d1 = section.getfloat('y1_water_column_thickness')
         d2 = section.getfloat('y2_water_column_thickness')
         d3 = bottom_depth

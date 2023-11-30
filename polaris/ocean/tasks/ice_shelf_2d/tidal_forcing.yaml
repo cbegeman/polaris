@@ -1,0 +1,10 @@
+omega:
+  tidal_forcing:
+    config_use_tidal_forcing: true
+  streams:
+    forcing_data:
+      type: input
+      filename_template: forcing_data.nc
+      input_interval: initial_only
+      contents:
+      - tidalInputMask

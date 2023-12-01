@@ -2,10 +2,10 @@ omega:
   wetting_drying:
     config_use_wetting_drying: true
     config_zero_drying_velocity: true
-    config_zero_drying_velocity_ramp: true
     config_drying_min_cell_height: {{ thin_film_thickness }}
-    config_zero_drying_velocity_hmin: {{ thin_film_ramp_hmin }}
-    config_zero_drying_velocity_hmin: {{ thin_film_ramp_hmax }}
+    config_zero_drying_velocity_ramp: true
+    config_zero_drying_velocity_ramp_hmin: {{ thin_film_ramp_hmin }}
+    config_zero_drying_velocity_ramp_hmax: {{ thin_film_ramp_hmax }}
     config_check_ssh_consistency: false
   streams:
     output:

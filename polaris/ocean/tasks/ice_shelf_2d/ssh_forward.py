@@ -70,7 +70,7 @@ class SshForward(OceanModelStep):
         self.add_yaml_file('polaris.ocean.config', 'output.yaml')
 
         self.add_input_file(filename='init.nc',
-                            work_dir_target=f'{init.path}/initial_state.nc')
+                            work_dir_target=f'{init.path}/output.nc')
         self.add_input_file(filename='graph.info',
                             work_dir_target=f'{mesh.path}/culled_graph.info')
 
@@ -155,6 +155,7 @@ class SshForward(OceanModelStep):
                            template_replacements=replacements)
 
         if self.thin_film:
+            section = config['ice_shelf_2d_thin_film']
             d1 = section.getfloat('y1_water_column_thickness')
             replacements = dict(
                 thin_film_thickness=f'{d1}',

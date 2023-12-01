@@ -19,7 +19,7 @@ class Init(Step):
     resolution : float
         The resolution of the task in km
     """
-    def __init__(self, component, resolution, indir):
+    def __init__(self, component, resolution, indir, thin_film=False):
         """
         Create the step
 
@@ -36,12 +36,13 @@ class Init(Step):
         """
         super().__init__(component=component, name='init', indir=indir)
         self.resolution = resolution
+        self.thin_film = thin_film
 
-        for file in ['base_mesh.nc', 'culled_mesh.nc', 'culled_graph.info']:
-            self.add_output_file(file)
-        self.add_output_file('initial_state.nc',
+        self.add_output_file('output.nc',
                              validate_vars=['temperature', 'salinity',
                                             'layerThickness'])
+        for file in ['base_mesh.nc', 'culled_mesh.nc', 'culled_graph.info']:
+            self.add_output_file(file)
 
     def run(self):
         """
@@ -50,6 +51,8 @@ class Init(Step):
         config = self.config
         logger = self.logger
 
+        out_filename = self.outputs[0]
+        print(out_filename)
         section = config['ice_shelf_2d']
         resolution = self.resolution
 
@@ -76,21 +79,27 @@ class Init(Step):
         ds = ds_mesh.copy()
 
         bottom_depth = config.getfloat('vertical_grid', 'bottom_depth')
+
         section = config['ice_shelf_2d']
         temperature = section.getfloat('temperature')
         surface_salinity = section.getfloat('surface_salinity')
         bottom_salinity = section.getfloat('bottom_salinity')
         coriolis_parameter = section.getfloat('coriolis_parameter')
+        y1 = section.getfloat('y1') * 1e3
+        y2 = section.getfloat('y2') * 1e3
+        y3 = section.getfloat('y3') * 1e3
 
         # points 1 and 2 are where angles on ice shelf are located.
         # point 3 is at the surface.
         # d variables are total water-column thickness below ice shelf
-        y1 = section.getfloat('y1') * 1e3
-        y2 = section.getfloat('y2') * 1e3
-        y3 = section.getfloat('y3') * 1e3
+        if self.thin_film:
+            section = config['ice_shelf_2d_thin_film']
+        else:
+            section = config['ice_shelf_2d_default']
         d1 = section.getfloat('y1_water_column_thickness')
         d2 = section.getfloat('y2_water_column_thickness')
         d3 = bottom_depth
+        print(d1)
 
         x_cell = ds.xCell
         y_cell = ds.yCell
@@ -155,7 +164,7 @@ class Init(Step):
         ds.attrs['ny'] = ny
         ds.attrs['dc'] = dc
 
-        write_netcdf(ds, 'initial_state.nc')
+        write_netcdf(ds, out_filename)
 
         # Generate the tidal forcing dataset whether it is used or not
         ds_forcing = xr.Dataset()

@@ -9,7 +9,9 @@ class Default(Task):
     initial condition, then performs a short forward run.
     """
 
-    def __init__(self, component, resolution, indir, shared_steps, mesh, init):
+    def __init__(self, component, resolution, indir, shared_steps, mesh, init,
+                 thin_film=False, tidal_forcing=False,
+                 time_varying_forcing=False):
         """
         Create the test case
 
@@ -27,7 +29,12 @@ class Default(Task):
         shared_steps : dict of dict of polaris.Steps
             The shared steps to include as symlinks
         """
-        super().__init__(component=component, name='default', indir=indir)
+        name = 'default'
+        if tidal_forcing:
+            name = f'{name}_tidal_forcing'
+        if time_varying_forcing:
+            name = f'{name}_time_varying_forcing'
+        super().__init__(component=component, name=name, indir=indir)
 
         for name, shared_step in shared_steps.items():
             self.add_step(shared_step, symlink=name)
@@ -35,7 +42,7 @@ class Default(Task):
         self.add_step(
             Forward(component=component, indir=self.subdir, ntasks=None,
                     min_tasks=None, openmp_threads=1, resolution=resolution,
-                    mesh=mesh, init=init))
+                    mesh=mesh, init=init, thin_film=thin_film))
 
         self.add_step(
             Viz(component=component, indir=self.subdir, mesh=mesh, init=init))

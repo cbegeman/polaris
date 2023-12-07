@@ -42,7 +42,9 @@ class Default(Task):
         self.add_step(
             Forward(component=component, indir=self.subdir, ntasks=None,
                     min_tasks=None, openmp_threads=1, resolution=resolution,
-                    mesh=mesh, init=init, thin_film=thin_film))
+                    mesh=mesh, init=init, thin_film=thin_film,
+                    tidal_forcing=tidal_forcing,
+                    time_varying_forcing=time_varying_forcing))
 
         self.add_step(
             Viz(component=component, indir=self.subdir, mesh=mesh, init=init))

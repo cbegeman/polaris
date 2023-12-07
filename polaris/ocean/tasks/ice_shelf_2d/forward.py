@@ -66,6 +66,10 @@ class Forward(OceanModelStep):
 
         self.add_input_file(filename='init.nc',
                             work_dir_target=f'{init.path}/output.nc')
+        if time_varying_forcing:
+            self.add_input_file(
+                filename='land_ice_forcing.nc',
+                work_dir_target=f'{mesh.path}/land_ice_forcing.nc')
         self.add_input_file(filename='graph.info',
                             work_dir_target=f'{mesh.path}/culled_graph.info')
 
@@ -122,6 +126,11 @@ class Forward(OceanModelStep):
         btr_dt_str = get_time_interval_string(
             seconds=btr_dt_per_km * self.resolution)
 
+        if self.time_varying_forcing:
+            section = config['ice_shelf_2d_forcing']
+        else:
+            section = config['ice_shelf_2d_default']
+
         s_per_hour = 3600.
         run_duration = section.getfloat('forward_run_duration')
         run_duration_str = get_time_interval_string(
@@ -152,11 +161,12 @@ class Forward(OceanModelStep):
                                'tidal_forcing.yaml')
         if self.thin_film:
             section = config['ice_shelf_2d_thin_film']
-            d1 = section.getfloat('y1_water_column_thickness')
+            min_thickness = section.getfloat('y1_water_column_thickness')
+            max_thickness = section.getfloat('ramp_max_thickness')
             replacements = dict(
-                thin_film_thickness=f'{d1}',
-                thin_film_ramp_hmin=f'{d1}',
-                thin_film_ramp_hmax=f'{d1 * 10.}',
+                thin_film_thickness=f'{min_thickness}',
+                thin_film_ramp_hmin=f'{min_thickness}',
+                thin_film_ramp_hmax=f'{max_thickness}',
             )
             self.add_yaml_file('polaris.ocean.tasks.ice_shelf_2d',
                                'thin_film.yaml',

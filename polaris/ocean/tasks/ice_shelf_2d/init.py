@@ -19,7 +19,8 @@ class Init(Step):
     resolution : float
         The resolution of the task in km
     """
-    def __init__(self, component, resolution, indir, thin_film=False):
+    def __init__(self, component, resolution, indir, thin_film=False,
+                 time_varying_forcing=False):
         """
         Create the step
 
@@ -37,11 +38,17 @@ class Init(Step):
         super().__init__(component=component, name='init', indir=indir)
         self.resolution = resolution
         self.thin_film = thin_film
+        # TODO set up the time varying forcing in a separate step because the
+        # rest of init is shared
+        self.time_varying_forcing = time_varying_forcing
 
         self.add_output_file('output.nc',
                              validate_vars=['temperature', 'salinity',
                                             'layerThickness'])
-        for file in ['base_mesh.nc', 'culled_mesh.nc', 'culled_graph.info']:
+        output_files = ['base_mesh.nc', 'culled_mesh.nc', 'culled_graph.info']
+        if time_varying_forcing:
+            output_files.append('land_ice_forcing.nc')
+        for file in output_files:
             self.add_output_file(file)
 
     def run(self):
@@ -164,6 +171,10 @@ class Init(Step):
         ds.attrs['ny'] = ny
         ds.attrs['dc'] = dc
 
+        if self.time_varying_forcing:
+            _write_time_varying_forcing(
+                config=config, ds_init=ds, section_name='ice_shelf_2d_forcing')
+
         write_netcdf(ds, out_filename)
 
         # Generate the tidal forcing dataset whether it is used or not
@@ -201,3 +212,52 @@ def _compute_land_ice_pressure_from_draft(land_ice_draft, modify_mask,
     land_ice_pressure = \
         modify_mask * np.maximum(-ref_density * gravity * land_ice_draft, 0.)
     return land_ice_pressure
+
+
+def _write_time_varying_forcing(config, ds_init, section_name):
+    """
+    Write time-varying land-ice forcing and update the initial condition
+    """
+
+    dates = config.get(section_name, 'dates')
+    dates = [date.ljust(64) for date in dates.replace(',', ' ').split()]
+    scales = config.get(section_name, 'scales')
+    scales = [float(scale) for scale in scales.replace(',', ' ').split()]
+
+    ds_out = xr.Dataset()
+    ds_out['xtime'] = ('Time', dates)
+    ds_out['xtime'] = ds_out.xtime.astype('S')
+
+    landIceDraft = list()
+    landIcePressure = list()
+    landIceFraction = list()
+    landIceFloatingFraction = list()
+
+    for scale in scales:
+        landIceDraft.append(scale * ds_init.landIceDraft)
+        landIcePressure.append(scale * ds_init.landIcePressure)
+        landIceFraction.append(ds_init.landIceFraction)
+        landIceFloatingFraction.append(ds_init.landIceFloatingFraction)
+
+    ds_out['landIceDraftForcing'] = xr.concat(landIceDraft, 'Time')
+    ds_out.landIceDraftForcing.attrs['units'] = 'm'
+    ds_out.landIceDraftForcing.attrs['long_name'] = \
+        'The approximate elevation of the land ice-ocean interface'
+    ds_out['landIcePressureForcing'] = \
+        xr.concat(landIcePressure, 'Time')
+    ds_out.landIcePressureForcing.attrs['units'] = 'm'
+    ds_out.landIcePressureForcing.attrs['long_name'] = \
+        'Pressure from the weight of land ice at the ice-ocean interface'
+    ds_out['landIceFractionForcing'] = \
+        xr.concat(landIceFraction, 'Time')
+    ds_out.landIceFractionForcing.attrs['long_name'] = \
+        'The fraction of each cell covered by land ice'
+    ds_out['landIceFloatingFractionForcing'] = \
+        xr.concat(landIceFloatingFraction, 'Time')
+    ds_out.landIceFloatingFractionForcing.attrs['long_name'] = \
+        'The fraction of each cell covered by floating land ice'
+    write_netcdf(ds_out, 'land_ice_forcing.nc')
+
+    ds_init['landIceDraft'] = scales[0] * ds_init.landIceDraft
+    ds_init['ssh'] = ds_init.landIceDraft
+    ds_init['landIcePressure'] = scales[0] * ds_init.landIcePressure

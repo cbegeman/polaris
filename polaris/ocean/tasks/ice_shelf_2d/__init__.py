@@ -36,12 +36,13 @@ def add_ice_shelf_2d_tasks(component):
             shared_steps: Dict[str, Step] = dict()
 
             init = Init(component=component, resolution=resolution,
-                        indir=resdir, thin_film=thin_film)
+                        indir=resdir, thin_film=thin_film,
+                        time_varying_forcing=True)
             init.set_shared_config(config, link=config_filename)
             shared_steps['init'] = init
 
             # TODO get from config?
-            num_iterations = 10
+            num_iterations = 9
 
             iteration = 0
             name = f'ssh_forward_{iteration}'

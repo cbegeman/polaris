@@ -6,7 +6,10 @@ omega:
     config_zero_drying_velocity_ramp: true
     config_zero_drying_velocity_ramp_hmin: {{ thin_film_ramp_hmin }}
     config_zero_drying_velocity_ramp_hmax: {{ thin_film_ramp_hmax }}
+    config_zero_drying_velocity_ramp_factor: 8.0
     config_check_ssh_consistency: false
+    config_use_thin_film_viscosity: true
+    config_thin_film_viscosity_constant: 1e2
   streams:
     output:
       contents:

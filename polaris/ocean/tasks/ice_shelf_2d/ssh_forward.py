@@ -156,11 +156,12 @@ class SshForward(OceanModelStep):
 
         if self.thin_film:
             section = config['ice_shelf_2d_thin_film']
-            d1 = section.getfloat('y1_water_column_thickness')
+            min_thickness = section.getfloat('y1_water_column_thickness')
+            max_thickness = section.getfloat('ramp_max_thickness')
             replacements = dict(
-                thin_film_thickness=f'{d1}',
-                thin_film_ramp_hmin=f'{d1}',
-                thin_film_ramp_hmax=f'{d1 * 10.}',
+                thin_film_thickness=f'{min_thickness}',
+                thin_film_ramp_hmin=f'{min_thickness}',
+                thin_film_ramp_hmax=f'{max_thickness}',
             )
             self.add_yaml_file('polaris.ocean.tasks.ice_shelf_2d',
                                'thin_film.yaml',

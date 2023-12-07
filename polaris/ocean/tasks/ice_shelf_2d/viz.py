@@ -52,7 +52,6 @@ class Viz(Step):
         y = xr.DataArray(data=[y_min, y_max], dims=('nPoints',))
 
         # Plot the time series of max velocity
-        # TODO this doesn't seem to be working
         plt.figure(figsize=[12, 6], dpi=100)
         umax = np.amax(ds.velocityX[:, :, 0].values, axis=1)
         vmax = np.amax(ds.velocityY[:, :, 0].values, axis=1)
@@ -91,7 +90,6 @@ class Viz(Step):
                       mpas_field=ds_init.temperature.isel(Time=tidx),
                       out_filename='temperature_section_init.png',
                       title='temperature',
-                      interface_color='grey',
                       vmin=vmin_temp, vmax=vmax_temp,
                       colorbar_label=r'$^{\circ}$C', cmap='cmo.thermal')
 
@@ -99,7 +97,6 @@ class Viz(Step):
                       mpas_field=ds_init.salinity.isel(Time=tidx),
                       out_filename='salinity_section_init.png',
                       title='salinity',
-                      interface_color='grey',
                       vmin=vmin_salt, vmax=vmax_salt,
                       colorbar_label=r'PSU', cmap='cmo.haline')
 
@@ -119,10 +116,13 @@ class Viz(Step):
             plot_horiz_field(ds_horiz, ds_mesh, 'columnThickness',
                              f'H_horiz_t{tidx}.png', t_index=None,
                              cell_mask=cell_mask)
+            plot_horiz_field(ds_horiz, ds_mesh, 'landIceFreshwaterFlux',
+                             f'melt_horiz_t{tidx}.png', t_index=None,
+                             cell_mask=cell_mask)
             if 'wettingVelocityFactor' in ds_horiz.keys():
                 plot_horiz_field(ds_horiz, ds_mesh, 'wettingVelocityFactor',
                                  f'wet_horiz_t{tidx}.png', t_index=None,
-                                 z_index=0, cell_mask=cell_mask,
+                                 z_index=None, cell_mask=cell_mask,
                                  vmin=0, vmax=1, cmap='cmo.ice')
             # Plot difference in ssh
             plot_horiz_field(ds_horiz, ds_mesh, 'delSsh',
@@ -149,24 +149,27 @@ class Viz(Step):
             plot_horiz_field(ds, ds_mesh, 'velocityX',
                              f'u_surf_horiz_t{tidx}.png', t_index=tidx,
                              z_index=0, cell_mask=cell_mask,
+                             vmin=-vmax_uv, vmax=vmax_uv,
                              cmap_title=r'm/s', cmap='cmo.balance')
             plot_horiz_field(ds, ds_mesh, 'velocityX',
                              f'u_bot_horiz_t{tidx}.png', t_index=tidx,
                              z_index=-1, cell_mask=cell_mask,
+                             vmin=-vmax_uv, vmax=vmax_uv,
                              cmap_title=r'm/s', cmap='cmo.balance')
             plot_horiz_field(ds, ds_mesh, 'velocityY',
                              f'v_surf_horiz_t{tidx}.png', t_index=tidx,
                              z_index=0, cell_mask=cell_mask,
+                             vmin=-vmax_uv, vmax=vmax_uv,
                              cmap_title=r'm/s', cmap='cmo.balance')
             plot_horiz_field(ds, ds_mesh, 'velocityY',
                              f'v_bot_horiz_t{tidx}.png', t_index=tidx,
                              z_index=-1, cell_mask=cell_mask,
+                             vmin=-vmax_uv, vmax=vmax_uv,
                              cmap_title=r'm/s', cmap='cmo.balance')
             plot_transect(ds_transect,
                           mpas_field=ds.velocityX.isel(Time=tidx),
                           out_filename=f'u_section_t{tidx}.png',
                           title='x-velocity',
-                          interface_color='grey',
                           vmin=-vmax_uv, vmax=vmax_uv,
                           colorbar_label=r'm/s', cmap='cmo.balance')
 
@@ -174,7 +177,6 @@ class Viz(Step):
                           mpas_field=ds.velocityY.isel(Time=tidx),
                           out_filename=f'v_section_t{tidx}.png',
                           title='y-velocity',
-                          interface_color='grey',
                           vmin=-vmax_uv, vmax=vmax_uv,
                           colorbar_label=r'm/s', cmap='cmo.balance')
 
@@ -183,7 +185,6 @@ class Viz(Step):
                 mpas_field=ds.temperature.isel(Time=tidx),
                 out_filename=f'temperature_section_t{tidx}.png',
                 title='temperature',
-                interface_color='grey',
                 vmin=vmin_temp, vmax=vmax_temp,
                 colorbar_label=r'$^{\circ}$C', cmap='cmo.thermal')
 
@@ -191,7 +192,6 @@ class Viz(Step):
                           mpas_field=ds.salinity.isel(Time=tidx),
                           out_filename=f'salinity_section_t{tidx}.png',
                           title='salinity',
-                          interface_color='grey',
                           vmin=vmin_salt, vmax=vmax_salt,
                           colorbar_label=r'PSU', cmap='cmo.haline')
 

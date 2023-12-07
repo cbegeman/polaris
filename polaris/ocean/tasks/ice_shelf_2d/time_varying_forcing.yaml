@@ -1,6 +1,6 @@
 omega:
   time_varying_forcing:
-    config_use_time_varying_forcing: true
+    config_use_time_varying_land_ice_forcing: true
   streams:
     land_ice_forcing:
       filename_template: land_ice_forcing.nc

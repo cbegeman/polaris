@@ -17,6 +17,10 @@ omega:
     config_use_cvmix_kpp: true
     config_cvmix_kpp_matching: MatchBoth
     config_cvmix_kpp_interpolationOMLType: cubic
+  eos:
+    config_eos_type: linear
+  eos_linear:
+    config_eos_linear_beta: 0.01
   forcing:
     config_use_bulk_wind_stress: true
   tracer_forcing_activeTracers:

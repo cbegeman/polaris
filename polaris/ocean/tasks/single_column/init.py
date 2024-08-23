@@ -161,6 +161,7 @@ class Init(Step):
         rain_flux = section.getfloat('rain_flux')
         river_runoff_flux = section.getfloat('river_runoff_flux')
         ice_runoff_flux = section.getfloat('ice_runoff_flux')
+        subglacial_runoff_flux = section.getfloat('subglacial_runoff_flux')
         wind_stress_zonal = section.getfloat('wind_stress_zonal')
         wind_stress_meridional = section.getfloat('wind_stress_meridional')
 
@@ -193,4 +194,6 @@ class Init(Step):
         ds_forcing['riverRunoffFlux'] = \
             river_runoff_flux * forcing_array_surface
         ds_forcing['iceRunoffFlux'] = ice_runoff_flux * forcing_array_surface
+        ds_forcing['subglacialRunoffFlux'] = \
+            subglacial_runoff_flux * forcing_array_surface
         write_netcdf(ds_forcing, 'forcing.nc')

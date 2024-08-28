@@ -130,7 +130,7 @@ class GlobalOcean(Task):
 
         subdir = f'{self.subdir}/topo/remap_base'
         topo_map_step = TopoMap(component=component,
-                                name='topo_map_base_{mesh_name}',
+                                name=f'topo_map_base_{mesh_name}',
                                 subdir=subdir,
                                 config=self.config,
                                 mesh_name=mesh_name,

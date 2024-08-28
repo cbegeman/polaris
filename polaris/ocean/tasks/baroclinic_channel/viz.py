@@ -39,16 +39,75 @@ class Viz(Step):
         Run this step of the task
         """
         ds_mesh = xr.load_dataset('mesh.nc')
+        ds_diff = xr.load_dataset('output_diff.nc')
         ds_init = xr.load_dataset('init.nc')
         ds = xr.load_dataset('output.nc')
+        ds = ds.isel(Time=[1])
+        ds0 = ds.isel(nVertLevels=0)
+        speed = np.sqrt(np.add(np.square(ds0.velocityX.values),
+                               np.square(ds0.velocityY.values)))
+        ds['speed'] = xr.ones_like(ds0.velocityX) * speed
+        init_speed = np.sqrt(np.add(np.square(ds_init.velocityX.values),
+                                    np.square(ds_init.velocityY.values)))
+        ds_diff['speed'] = xr.ones_like(ds0.velocityX) * (speed - init_speed)
+        ds_diff['speedFraction'] = (xr.ones_like(ds0.velocityX) *
+                                    (speed - init_speed) / init_speed)
         t_index = ds.sizes['Time'] - 1
         cell_mask = ds_init.maxLevelCell >= 1
-        max_velocity = np.max(np.abs(ds.normalVelocity.values))
+        max_velocity = 1.  # np.max(np.abs(ds.normalVelocity.values))
         plot_horiz_field(ds, ds_mesh, 'normalVelocity',
                          'final_normalVelocity.png',
                          t_index=t_index,
                          vmin=-max_velocity, vmax=max_velocity,
                          cmap='cmo.balance', show_patch_edges=True,
+                         cell_mask=cell_mask)
+        plot_horiz_field(ds, ds_mesh, 'speed',
+                         'final_speed.png',
+                         t_index=t_index,
+                         vmin=0, vmax=max_velocity,
+                         cmap='cmo.speed',
+                         cell_mask=cell_mask)
+        plot_horiz_field(ds, ds_mesh, 'velocityX',
+                         'final_velocityX.png',
+                         t_index=t_index,
+                         vmin=-max_velocity, vmax=max_velocity,
+                         cmap='cmo.balance',
+                         cell_mask=cell_mask)
+        plot_horiz_field(ds, ds_mesh, 'velocityY',
+                         'final_velocityY.png',
+                         t_index=t_index,
+                         vmin=-max_velocity, vmax=max_velocity,
+                         cmap='cmo.balance',
+                         cell_mask=cell_mask)
+        plot_horiz_field(ds_diff, ds_mesh, 'velocityX',
+                         'diff_velocityX.png',
+                         t_index=0,
+                         vmin=-max_velocity / 10., vmax=max_velocity / 10.,
+                         cmap='cmo.balance',
+                         cell_mask=cell_mask)
+        plot_horiz_field(ds_diff, ds_mesh, 'velocityY',
+                         'diff_velocityY.png',
+                         t_index=0,
+                         vmin=-max_velocity / 10., vmax=max_velocity / 10.,
+                         cmap='cmo.balance',
+                         cell_mask=cell_mask)
+        plot_horiz_field(ds_diff, ds_mesh, 'normalVelocity',
+                         'diff_normalVelocity.png',
+                         t_index=0,
+                         vmin=-max_velocity / 10., vmax=max_velocity / 10.,
+                         cmap='cmo.balance', show_patch_edges=True,
+                         cell_mask=cell_mask)
+        plot_horiz_field(ds_diff, ds_mesh, 'speed',
+                         'diff_speed.png',
+                         t_index=t_index,
+                         vmin=-max_velocity / 2., vmax=max_velocity / 2.,
+                         cmap='cmo.balance',
+                         cell_mask=cell_mask)
+        plot_horiz_field(ds_diff, ds_mesh, 'speedFraction',
+                         'diff_speed_frac.png',
+                         t_index=0,
+                         vmin=-1., vmax=1.,
+                         cmap='cmo.balance',
                          cell_mask=cell_mask)
 
         y_min = ds_mesh.yVertex.min().values

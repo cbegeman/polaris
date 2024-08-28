@@ -144,10 +144,28 @@ class Init(Step):
 
         temperature = temperature.expand_dims(dim='Time', axis=0)
 
-        normal_velocity = xr.zeros_like(ds_mesh.xEdge)
+        # x is periodic
+        lambda_x = (lx * 1e3) / 2.
+        lambda_y = (ly * 1e3) / 2.
+        kx = 2.0 * np.pi / lambda_x
+        ky = 2.0 * np.pi / lambda_y
+        # u = np.sin(kx * ds_mesh.xEdge + ky * ds_mesh.yEdge)
+        v = np.sin(kx * ds_mesh.xEdge + ky * ds_mesh.yEdge)
+        # v = u
+        u = xr.zeros_like(v)
+        # v = xr.zeros_like(u)
+        vCell = np.sin(kx * ds_mesh.xCell + ky * ds_mesh.yCell)
+        # uCell = np.sin(kx * ds_mesh.xCell + ky * ds_mesh.yCell)
+        # vCell = uCell
+        uCell = xr.zeros_like(vCell)
+        # vCell = xr.zeros_like(uCell)
+        normal_velocity = (u * np.cos(ds_mesh.angleEdge) +
+                           v * np.sin(ds_mesh.angleEdge))
         normal_velocity, _ = xr.broadcast(normal_velocity, ds.refBottomDepth)
         normal_velocity = normal_velocity.transpose('nEdges', 'nVertLevels')
         normal_velocity = normal_velocity.expand_dims(dim='Time', axis=0)
+        ds['velocityX'] = uCell.expand_dims(dim='Time', axis=0)
+        ds['velocityY'] = vCell.expand_dims(dim='Time', axis=0)
 
         ds['temperature'] = temperature
         ds['salinity'] = salinity * xr.ones_like(temperature)
@@ -165,8 +183,16 @@ class Init(Step):
         cell_mask = ds.maxLevelCell >= 1
 
         plot_horiz_field(ds, ds_mesh, 'normalVelocity',
-                         'initial_normal_velocity.png', cmap='cmo.balance',
-                         show_patch_edges=True, cell_mask=cell_mask)
+                         'initial_normal_velocity.png',
+                         cmap='cmo.balance',
+                         vmin=-1., vmax=1., show_patch_edges=True,
+                         cell_mask=cell_mask)
+        plot_horiz_field(ds, ds_mesh, 'velocityX', 'initial_velocityX.png',
+                         vmin=-1., vmax=1., cmap='cmo.balance',
+                         cell_mask=cell_mask)
+        plot_horiz_field(ds, ds_mesh, 'velocityY', 'initial_velocityY.png',
+                         vmin=-1., vmax=1., cmap='cmo.balance',
+                         cell_mask=cell_mask)
 
         y_min = ds_mesh.yVertex.min().values
         y_max = ds_mesh.yVertex.max().values

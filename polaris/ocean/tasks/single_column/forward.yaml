@@ -1,6 +1,8 @@
 mpas-ocean:
   run_modes:
     config_ocean_run_mode: forward
+  io:
+    config_write_output_on_startup: false
   time_management:
     config_stop_time: none
     config_run_duration: 0001_00:00:00
@@ -22,19 +24,29 @@ mpas-ocean:
     config_eos_type: linear
   eos_linear:
     config_eos_linear_beta: 0.01
+  frazil_ice:
+    config_use_frazil_ice_formation: true
   forcing:
     config_use_bulk_wind_stress: true
   tracer_forcing_activeTracers:
     config_use_activeTracers_surface_bulk_forcing: true
     config_use_activeTracers_surface_restoring: true
     config_use_activeTracers_interior_restoring: true
+  debug:
+    config_compute_active_tracer_budgets: true
+  AM_conservationCheck:
+    config_AM_conservationCheck_enable: true
+    config_AM_conservationCheck_compute_on_startup: true
+    config_AM_conservationCheck_write_on_startup: true
   streams:
     mesh:
       filename_template: initial_state.nc
     input:
       filename_template: initial_state.nc
     restart: {}
-    KPP_testing: {}
+    KPP_testing:
+      filename_template: KPP.nc
+      output_interval: 0000_00:00:01
     mixedLayerDepthsOutput:
       contents:
       - xtime
@@ -49,12 +61,27 @@ mpas-ocean:
       - tracers
       - xtime
       - daysSinceStartOfSim
+      - ssh
+      - bottomDepth
       - zMid
       - zTop
       - normalVelocity
       - layerThickness
       - kineticEnergyCell
+      - vertVelocityTop
       - relativeVorticityCell
+      - accumulatedFrazilIceMass
+      - accumulatedFrazilIceSalinity
+      - frazilSurfacePressure
+      - frazilLayerThicknessTendency
+      - frazilTemperatureTendency
+      - frazilSalinityTendency
+      - activeTracerSurfaceFluxTendency
+      - activeTracerVerticalAdvectionTendency
+      - activeTracerVerticalAdvectionTopFlux
+      - activeTracersTend
+      - temperatureShortWaveTendency
+      - activeTracerVertMixTendency
     forcing_data:
       type: input
       filename_template: forcing.nc
@@ -74,3 +101,82 @@ mpas-ocean:
       - shortWaveHeatFlux
       - evaporationFlux
       - rainFlux
+    conservationCheckOutput:
+      type: output
+      filename_template: conservationCheck.nc
+      filename_interval: none
+      clobber_mode: truncate
+      packages: conservationCheckAMPKG
+      output_interval: 0000_00:00:01
+      contents:
+      - xtime
+      - daysSinceStartOfSim
+      - initialEnergy
+      - finalEnergy
+      - energyChange
+      - netEnergyFlux
+      - absoluteEnergyError
+      - relativeEnergyError
+      - initialMass
+      - finalMass
+      - massChange
+      - netMassFlux
+      - absoluteMassError
+      - relativeMassError
+      - initialSalt
+      - finalSalt
+      - saltChange
+      - netSaltFlux
+      - absoluteSaltError
+      - relativeSaltError
+      - accumulatedLatentHeatFlux
+      - accumulatedSensibleHeatFlux
+      - accumulatedLongWaveHeatFluxUp
+      - accumulatedLongWaveHeatFluxDown
+      - accumulatedShortWaveHeatFlux
+      - accumulatedSeaIceHeatFlux
+      - accumulatedMeltingSnowHeatFlux
+      - accumulatedMeltingIceRunoffHeatFlux
+      - accumulatedRemovedIceRunoffHeatFlux
+      - accumulatedIcebergHeatFlux
+      - accumulatedFrazilHeatFlux
+      - accumulatedLandIceHeatFlux
+      - accumulatedLandIceFrazilHeatFlux
+      - accumulatedRainTemperatureFlux
+      - accumulatedEvapTemperatureFlux
+      - accumulatedSeaIceTemperatureFlux
+      - accumulatedRiverRunoffTemperatureFlux
+      - accumulatedSubglacialRunoffTemperatureFlux
+      - accumulatedIcebergTemperatureFlux
+      - accumulatedRainFlux
+      - accumulatedSnowFlux
+      - accumulatedEvaporationFlux
+      - accumulatedSeaIceFlux
+      - accumulatedRiverRunoffFlux
+      - accumulatedSubglacialRunoffFlux
+      - accumulatedIceRunoffFlux
+      - accumulatedRemovedRiverRunoffFlux
+      - accumulatedRemovedIceRunoffFlux
+      - accumulatedIcebergFlux
+      - accumulatedFrazilFlux
+      - accumulatedLandIceFlux
+      - accumulatedLandIceFrazilFlux
+      - accumulatedSeaIceSalinityFlux
+      - accumulatedFrazilSalinityFlux
+      - accumulatedSubglacialRunoffSalinityFlux
+      - initialCarbon
+      - finalCarbon
+      - carbonChange
+      - netCarbonFlux
+      - absoluteCarbonError
+      - relativeCarbonError
+      - accumulatedAbsoluteCarbonError
+      - accumulatedRelativeCarbonError
+#    conservationCheckRestart:
+#      type: input;output
+#      filename_template: restarts/restart.AM.conservationCheck.$Y-$M-$D_$h.$m.$s.nc
+#      filename_interval: output_interval
+#      clobber_mode: replace_files
+#      packages: conservationCheckAMPKG
+#      input_interval: initial_only
+#      output_interval: 0001_00:00:00

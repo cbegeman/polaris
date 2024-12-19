@@ -113,6 +113,8 @@ class Init(Step):
         salinity, _ = xr.broadcast(salinity_vert, x_cell)
         salinity = salinity.transpose('nCells', 'nVertLevels')
         salinity = salinity.expand_dims(dim='Time', axis=0)
+        # az1 = -18.48
+        # temperature = (1. / az1) * salinity / (1. - salinity * 1.0e-3)
 
         normal_velocity, _ = xr.broadcast(
             xr.zeros_like(ds_mesh.xEdge), ds.refBottomDepth)
@@ -161,6 +163,7 @@ class Init(Step):
         rain_flux = section.getfloat('rain_flux')
         river_runoff_flux = section.getfloat('river_runoff_flux')
         ice_runoff_flux = section.getfloat('ice_runoff_flux')
+        sea_ice_flux = section.getfloat('sea_ice_freshwater_flux')
         wind_stress_zonal = section.getfloat('wind_stress_zonal')
         wind_stress_meridional = section.getfloat('wind_stress_meridional')
 
@@ -193,4 +196,10 @@ class Init(Step):
         ds_forcing['riverRunoffFlux'] = \
             river_runoff_flux * forcing_array_surface
         ds_forcing['iceRunoffFlux'] = ice_runoff_flux * forcing_array_surface
+        ds_forcing['seaIceFreshWaterFlux'] = \
+            sea_ice_flux * forcing_array_surface
+        sea_ice_salinity = 4.
+        if sea_ice_flux < 0.:
+            ds_forcing['seaIceSalinityFlux'] = \
+                1.e-3 * sea_ice_salinity * sea_ice_flux * forcing_array_surface
         write_netcdf(ds_forcing, 'forcing.nc')

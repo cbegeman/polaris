@@ -82,18 +82,32 @@ class Forward(OceanModelStep):
             filename='graph.info', target='../init/culled_graph.info'
         )
 
-        self.add_yaml_file('polaris.tasks.ocean.single_column', 'forward.yaml')
-        self.add_yaml_file(
-            f'polaris.tasks.ocean.single_column.{task_name}', 'forward.yaml'
-        )
+        self.package = 'polaris.tasks.ocean.single_column'
+        self.yaml_filename = 'forward.yaml'
+        self.task_name = task_name
 
         self.add_output_file(filename='output.nc', validate_vars=validate_vars)
 
         self.resources_fixed = ntasks is not None
 
-        self.task_name = task_name
-
     def dynamic_model_config(self, at_setup):
+        config = self.config
+        model = config.get('ocean', 'model')
+        vert_levels = config.get('vertical_grid', 'vert_levels')
+        if model == 'mpas-ocean' and vert_levels == 1:
+            self.add_yaml_file('polaris.ocean.config', 'single_layer.yaml')
+        time_integrator = config.get('single_column_inertial','time_integrator')
+        time_integrator_map = dict([('RK4', 'RungeKutta4')])
+        model = config.get('ocean', 'model')
+        if model == 'omega':
+            if time_integrator in time_integrator_map.keys():
+                time_integrator = time_integrator_map[time_integrator]
+            else:
+                print(
+                    'Warning: mapping from time integrator '
+                    f'{time_integrator} to omega not found, '
+                    'retaining name given in config'
+                )
         if self.task_name == 'ekman':
             nu = self.config.getfloat(
                 'single_column_ekman', 'vertical_viscosity'
@@ -102,3 +116,15 @@ class Forward(OceanModelStep):
                 options={'config_cvmix_background_viscosity': nu},
                 config_model='mpas-ocean',
             )
+        replacements = dict(
+            time_integrator=time_integrator,
+        )
+
+        self.add_yaml_file(
+            self.package,
+            self.yaml_filename,
+            template_replacements=replacements,
+        )
+        self.add_yaml_file(
+            f'{self.package}.{self.task_name}', self.yaml_filename
+        )

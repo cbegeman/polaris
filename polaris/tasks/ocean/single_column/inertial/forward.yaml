@@ -9,3 +9,34 @@ mpas-ocean:
     config_implicit_constant_bottom_drag_coeff: 0.0
   cvmix:
     config_use_cvmix: false
+Omega:
+  Advection:
+    FluxThicknessType: Center
+  Dimension:
+    NVertLevels: 1
+  IOStreams:
+    InitialState:
+      UsePointerFile: false
+      Filename: init.nc
+      Mode: read
+      Precision: double
+      Freq: 1
+      FreqUnits: OnStartup
+      UseStartEnd: false
+      Contents:
+        - State
+        - WindStressZonal
+        - WindStressMeridional
+    History:
+      UsePointerFile: false
+      Filename: output.nc
+      Freq: {{ output_frequency }}
+      FreqUnits: {{ output_frequency_units }}
+      IfExists: replace
+      # effectively never
+      FileFreq: 9999
+      FileFreqUnits: years
+      UseStartEnd: false
+      Contents:
+        - State
+        - SshCell

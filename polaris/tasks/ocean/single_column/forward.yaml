@@ -1,10 +1,12 @@
-mpas-ocean:
-  run_modes:
-    config_ocean_run_mode: forward
+ocean:
   time_management:
     config_stop_time: none
   time_integration:
+    config_time_integrator: {{ time_integrator }}
     config_dt: 00:10:00
+mpas-ocean:
+  run_modes:
+    config_ocean_run_mode: forward
   split_explicit_ts:
     config_btr_dt: 0000_00:00:30
   forcing:

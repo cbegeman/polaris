@@ -19,7 +19,13 @@ class Analysis(OceanIOStep):
     test case
     """
 
-    def __init__(self, component, indir, boundary_condition='free slip'):
+    def __init__(
+        self,
+        component,
+        indir,
+        test_name='munk',
+        boundary_condition='free slip',
+    ):
         """
         Create the step
 

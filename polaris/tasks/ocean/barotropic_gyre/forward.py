@@ -1,5 +1,8 @@
 import time
-from math import ceil, floor
+from math import ceil, floor, pi
+
+import numpy as np
+from scipy.special import lambertw
 
 from polaris.mesh.planar import compute_planar_hex_nx_ny
 from polaris.ocean.model import OceanModelStep, get_time_interval_string
@@ -28,6 +31,8 @@ class Forward(OceanModelStep):
         name='forward',
         subdir=None,
         indir=None,
+        test_name='munk',
+        boundary_condition='free slip',
         ntasks=None,
         min_tasks=None,
         openmp_threads=1,
@@ -73,6 +78,7 @@ class Forward(OceanModelStep):
             If none, it will be created.
         """
         self.run_time_steps = run_time_steps
+        self.boundary_condition = boundary_condition
         super().__init__(
             component=component,
             name=name,
@@ -136,13 +142,55 @@ class Forward(OceanModelStep):
         if model == 'mpas-ocean':
             self.add_yaml_file('polaris.ocean.config', 'single_layer.yaml')
 
+        resolution = config.getfloat('barotropic_gyre', 'resolution')
+        # Laplacian viscosity
         nu = config.getfloat('barotropic_gyre', 'nu_2')
         rho_0 = config.getfloat('barotropic_gyre', 'rho_0')
+        # df/dy where f is coriolis parameter
+        beta = config.getfloat('barotropic_gyre', 'beta')
+        ly = config.getfloat('barotropic_gyre', 'ly')
 
+        # Compute some non-dimensional numbers
+        delta_m = (nu / (beta * (ly * 1.0e3) ** 3.0)) ** (1.0 / 3.0)
+
+        if self.boundary_condition == 'free-slip':
+            # Compute the omega constant
+            omega = lambertw(1).real
+            # The analytic solution for the free-slip case is only valid when
+            # delta_m approaches omega
+            if abs(delta_m - omega) > 0.1 * omega:
+                L_ideal = (nu / beta) ** (1.0 / 3.0) / omega
+                print(
+                    f'Recommended domain length is {L_ideal / 1.0e3} km for '
+                    f'nu = {nu} and beta = {beta}'
+                )
+
+        # calculate the boundary layer thickness for specified parameters
+        m = (pi * 2) / np.sqrt(3) * (nu / beta) ** (1.0 / 3.0)
+        # ensure the boundary layer is at least 3 gridcells wide
+        if m <= 3.0 * resolution * 1.0e3:
+            raise ValueError(
+                f'Resolution {resolution} km is too coarse to '
+                'properly resolve the lateral boundary layer '
+                f'with anticipated width of {(m * 1e-3):03g} km'
+            )
+
+        # check whether viscosity suitable for stability
+        stability_parameter_max = 0.6
         dt_max = compute_max_time_step(config)
-        dt = floor(dt_max / 3.0)
-        dt_str = get_time_interval_string(seconds=dt)
+        nu_max = (
+            stability_parameter_max
+            * (resolution * 1.0e3) ** 2.0
+            / (8 * dt_max)
+        )
+        if nu > nu_max:
+            raise ValueError(
+                f'Laplacian viscosity cannot be set to {nu}; '
+                f'maximum value is {nu_max}'
+            )
 
+        dt = floor(dt_max / 10.0)
+        dt_str = get_time_interval_string(seconds=dt)
         options = {'config_dt': dt_str, 'config_density0': rho_0}
         self.add_model_config_options(
             options=options, config_model='mpas-ocean'

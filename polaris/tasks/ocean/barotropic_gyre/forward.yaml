@@ -40,7 +40,8 @@ mpas-ocean:
   forcing:
     config_use_bulk_wind_stress: true
   lateral_walls:
-    config_wall_slip_factor: 0.0
+#    config_wall_slip_factor: 0.0  # no-slip
+    config_wall_slip_factor: 1.0  # free-slip
   debug:
     config_disable_thick_vadv: true
     config_disable_vel_hadv: true

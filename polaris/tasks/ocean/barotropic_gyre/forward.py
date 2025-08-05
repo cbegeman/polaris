@@ -151,18 +151,20 @@ class Forward(OceanModelStep):
         ly = config.getfloat('barotropic_gyre', 'ly')
 
         # Compute some non-dimensional numbers
-        delta_m = (nu / (beta * (ly * 1.0e3) ** 3.0)) ** (1.0 / 3.0)
+        eps = nu / (beta * (ly * 1.0e3) ** 3.0)
+        # delta_m = eps ** (1.0 / 3.0)
 
         if self.boundary_condition == 'free-slip':
             # Compute the omega constant
             omega = lambertw(1).real
             # The analytic solution for the free-slip case is only valid when
-            # delta_m approaches omega
-            if abs(delta_m - omega) > 0.1 * omega:
-                L_ideal = (nu / beta) ** (1.0 / 3.0) / omega
+            # eps approaches omega
+            if abs(eps - (1 / omega)) > 0.1 * omega:
+                L_ideal = ((nu / beta) / (1 / omega)) ** (1 / 3)
                 print(
-                    f'Recommended domain length is {L_ideal / 1.0e3} km for '
-                    f'nu = {nu} and beta = {beta}'
+                    f'Recommended domain length is {(L_ideal / 1.0e3):02g} km '
+                    f'for nu = {nu} and beta = {beta}, omega = {1 / omega}, '
+                    f'eps = {eps}'
                 )
 
         # calculate the boundary layer thickness for specified parameters

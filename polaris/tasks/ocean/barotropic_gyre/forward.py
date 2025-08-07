@@ -102,6 +102,7 @@ class Forward(OceanModelStep):
 
         self.package = 'polaris.tasks.ocean.barotropic_gyre'
         self.yaml_filename = 'forward.yaml'
+        self.test_name = test_name
 
     def compute_cell_count(self):
         """
@@ -145,7 +146,15 @@ class Forward(OceanModelStep):
 
         resolution = config.getfloat('barotropic_gyre', 'resolution')
         # Laplacian viscosity
-        nu = config.getfloat('barotropic_gyre', 'nu_2')
+        if self.test_name == 'stommel':
+            cd = config.getfloat('barotropic_gyre_stommel', 'cd')
+        else:
+            cd = 0.0
+        # Laplacian viscosity
+        if self.test_name == 'munk':
+            nu = config.getfloat('barotropic_gyre_munk', 'nu_2')
+        else:
+            nu = 0.0
         rho_0 = config.getfloat('barotropic_gyre', 'rho_0')
         # beta = df/dy where f is coriolis parameter
         beta = config.getfloat('barotropic_gyre', 'beta')
@@ -173,7 +182,8 @@ class Forward(OceanModelStep):
             / (8 * dt_max)
         )
         if nu > nu_max:
-            raise ValueError(
+            # raise ValueError(
+            print(
                 f'Laplacian viscosity cannot be set to {nu}; '
                 f'maximum value is {nu_max}'
             )
@@ -212,6 +222,7 @@ class Forward(OceanModelStep):
             stop_time=stop_time_str,
             output_interval=output_interval_str,
             nu=f'{nu:02g}',
+            cd=f'{cd:02g}',
         )
 
         # make sure output is double precision

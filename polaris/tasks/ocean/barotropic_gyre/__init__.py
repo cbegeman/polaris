@@ -19,7 +19,6 @@ def add_barotropic_gyre_tasks(component):
     component : polaris.tasks.ocean.Ocean
         the ocean component that the task will be added to
     """
-    # TODO support stommel case
     group_name = 'barotropic_gyre'
     group_dir = os.path.join('planar', group_name)
     config_filename = f'{group_name}.cfg'
@@ -29,19 +28,13 @@ def add_barotropic_gyre_tasks(component):
         f'polaris.tasks.ocean.{group_name}', config_filename
     )
     # There is one init step for the whole group
-    # init = Init(
-    #    component=component,
-    #    subdir=group_dir,
-    # )
-    # init.set_shared_config(config, link=config_filename)
     init = component.get_or_create_shared_step(
         step_cls=Init,
         subdir=group_dir,
         config=config,
         config_filename=config_filename,
     )
-    # for test_name in ['munk', 'stommel']:
-    for test_name in ['munk']:
+    for test_name in ['munk', 'stommel']:
         for boundary_condition in ['free-slip', 'no-slip']:
             component.add_task(
                 BarotropicGyre(
@@ -93,6 +86,7 @@ class BarotropicGyre(Task):
             min_tasks=None,
             openmp_threads=1,
             boundary_condition=boundary_condition,
+            test_name=test_name,
             name='short_forward',
             run_time_steps=3,
             graph_target=os.path.join(init_step.path, 'culled_graph.info'),
@@ -107,6 +101,7 @@ class BarotropicGyre(Task):
             min_tasks=None,
             openmp_threads=1,
             boundary_condition=boundary_condition,
+            test_name=test_name,
             name='long_forward',
             graph_target=os.path.join(init_step.path, 'culled_graph.info'),
         )

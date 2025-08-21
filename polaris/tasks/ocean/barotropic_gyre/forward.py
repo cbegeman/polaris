@@ -144,11 +144,14 @@ class Forward(OceanModelStep):
             self.add_yaml_file('polaris.ocean.config', 'single_layer.yaml')
 
         resolution = config.getfloat('barotropic_gyre', 'resolution')
-        # Laplacian viscosity
+        # Rayleigh damping coefficient
         if self.test_name == 'stommel':
-            cd = config.getfloat('barotropic_gyre_stommel', 'cd')
+            rd = config.getfloat(
+                f'barotropic_gyre_{self.test_name}_{self.boundary_condition}',
+                'rd',
+            )
         else:
-            cd = 0.0
+            rd = 0.0
         # Laplacian viscosity
         if self.test_name == 'munk':
             nu = config.getfloat(
@@ -224,7 +227,7 @@ class Forward(OceanModelStep):
             stop_time=stop_time_str,
             output_interval=output_interval_str,
             nu=f'{nu:02g}',
-            cd=f'{cd:02g}',
+            rd=f'{rd:02g}',
             slip_factor=f'{slip_factor_dict[self.boundary_condition]:02g}',
         )
 

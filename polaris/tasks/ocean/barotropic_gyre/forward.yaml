@@ -42,7 +42,7 @@ mpas-ocean:
     config_bottom_drag_mode: implicit
     config_implicit_bottom_drag_type: constant_and_rayleigh
     config_implicit_constant_bottom_drag_coeff: 0.
-    config_Rayleigh_damping_coeff: {{ cd }}
+    config_Rayleigh_damping_coeff: {{ rd }}
   forcing:
     config_use_bulk_wind_stress: true
   lateral_walls:

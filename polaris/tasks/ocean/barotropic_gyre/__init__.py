@@ -28,17 +28,26 @@ def add_barotropic_gyre_tasks(component):
         f'polaris.tasks.ocean.{group_name}', config_filename
     )
     for test_name in ['munk', 'stommel']:
-        for boundary_condition in ['free-slip', 'no-slip']:
-            component.add_task(
-                BarotropicGyre(
-                    component=component,
-                    subdir=group_dir,
-                    test_name=test_name,
-                    boundary_condition=boundary_condition,
-                    config=config,
-                    config_filename=config_filename,
-                )
+        component.add_task(
+            BarotropicGyre(
+                component=component,
+                subdir=group_dir,
+                test_name=test_name,
+                boundary_condition='free-slip',
+                config=config,
+                config_filename=config_filename,
             )
+        )
+    component.add_task(
+        BarotropicGyre(
+            component=component,
+            subdir=group_dir,
+            test_name='munk',
+            boundary_condition='no-slip',
+            config=config,
+            config_filename=config_filename,
+        )
+    )
 
 
 class BarotropicGyre(Task):

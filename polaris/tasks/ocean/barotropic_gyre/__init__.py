@@ -27,13 +27,6 @@ def add_barotropic_gyre_tasks(component):
     config.add_from_package(
         f'polaris.tasks.ocean.{group_name}', config_filename
     )
-    # There is one init step for the whole group
-    init = component.get_or_create_shared_step(
-        step_cls=Init,
-        subdir=group_dir,
-        config=config,
-        config_filename=config_filename,
-    )
     for test_name in ['munk', 'stommel']:
         for boundary_condition in ['free-slip', 'no-slip']:
             component.add_task(
@@ -41,7 +34,6 @@ def add_barotropic_gyre_tasks(component):
                     component=component,
                     subdir=group_dir,
                     test_name=test_name,
-                    init_step=init,
                     boundary_condition=boundary_condition,
                     config=config,
                     config_filename=config_filename,
@@ -59,7 +51,6 @@ class BarotropicGyre(Task):
         component,
         subdir,
         test_name,
-        init_step,
         boundary_condition,
         config,
         config_filename,
@@ -77,7 +68,14 @@ class BarotropicGyre(Task):
         super().__init__(component=component, name=name, subdir=indir)
         self.set_shared_config(config, link=config_filename)
 
-        self.add_step(init_step, symlink='init')
+        # There is one init step for the whole group
+        init_step = Init(
+            component=component,
+            indir=indir,
+            boundary_condition=boundary_condition,
+            test_name=test_name,
+        )
+        self.add_step(init_step)
 
         forward_step = Forward(
             component=component,

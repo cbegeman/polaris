@@ -77,7 +77,6 @@ class BarotropicGyre(Task):
         super().__init__(component=component, name=name, subdir=indir)
         self.set_shared_config(config, link=config_filename)
 
-        # There is one init step for the whole group
         init_step = Init(
             component=component,
             indir=indir,

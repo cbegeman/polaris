@@ -144,6 +144,10 @@ class Forward(OceanModelStep):
             self.add_yaml_file('polaris.ocean.config', 'single_layer.yaml')
 
         resolution = config.getfloat('barotropic_gyre', 'resolution')
+        rho_0 = config.getfloat('barotropic_gyre', 'rho_0')
+        # beta = df/dy where f is coriolis parameter
+        beta = config.getfloat('barotropic_gyre', 'beta')
+
         # Rayleigh damping coefficient
         if self.test_name == 'stommel':
             rd = config.getfloat(
@@ -158,50 +162,47 @@ class Forward(OceanModelStep):
                 f'barotropic_gyre_{self.test_name}_{self.boundary_condition}',
                 'nu_2',
             )
+            # calculate the boundary layer thickness for specified parameters
+            m = (pi * 2) / np.sqrt(3) * (nu / beta) ** (1.0 / 3.0)
+            # ensure the boundary layer is at least 3 gridcells wide
+            logger.info(
+                'Lateral boundary layer has an anticipated width of '
+                f'{(m * 1e-3):03g} km'
+            )
+            if m <= 3.0 * resolution * 1.0e3:
+                logger.warn(
+                    f'Resolution {resolution} km is too coarse to '
+                    'properly resolve the lateral boundary layer '
+                    f'with anticipated width of {(m * 1e-3):03g} km'
+                )
+
+            # check whether viscosity suitable for stability
+            stability_parameter_max = 0.6
+            dt_max = self.compute_max_time_step(config)
+            nu_max = (
+                stability_parameter_max
+                * (resolution * 1.0e3) ** 2.0
+                / (8 * dt_max)
+            )
+            if nu > nu_max:
+                raise ValueError(
+                    f'Laplacian viscosity cannot be set to {nu}; '
+                    f'maximum value is {nu_max}'
+                )
+
+            dt = floor(dt_max / 5.0)
+            nu_max = stability_parameter_max * (resolution * 1.0e3) ** 2.0 / dt
+            if nu > nu_max:
+                raise ValueError(
+                    f'Laplacian viscosity cannot be set to {nu}; '
+                    f'maximum value is {nu_max} or decrease the time step'
+                )
         else:
             nu = 0.0
-        rho_0 = config.getfloat('barotropic_gyre', 'rho_0')
-        # beta = df/dy where f is coriolis parameter
-        beta = config.getfloat('barotropic_gyre', 'beta')
+            dt = 60.0
 
-        # calculate the boundary layer thickness for specified parameters
-        m = (pi * 2) / np.sqrt(3) * (nu / beta) ** (1.0 / 3.0)
-        # ensure the boundary layer is at least 3 gridcells wide
-        logger.info(
-            'Lateral boundary layer has an anticipated width of '
-            f'{(m * 1e-3):03g} km'
-        )
-        if m <= 3.0 * resolution * 1.0e3:
-            logger.warn(
-                f'Resolution {resolution} km is too coarse to '
-                'properly resolve the lateral boundary layer '
-                f'with anticipated width of {(m * 1e-3):03g} km'
-            )
-
-        # check whether viscosity suitable for stability
-        stability_parameter_max = 0.6
-        dt_max = self.compute_max_time_step(config)
-        nu_max = (
-            stability_parameter_max
-            * (resolution * 1.0e3) ** 2.0
-            / (8 * dt_max)
-        )
-        if nu > nu_max:
-            raise ValueError(
-                f'Laplacian viscosity cannot be set to {nu}; '
-                f'maximum value is {nu_max}'
-            )
-
-        dt = floor(dt_max / 5.0)
         dt_str = get_time_interval_string(seconds=dt)
         dt_btr_str = get_time_interval_string(seconds=dt / 20.0)
-
-        nu_max = stability_parameter_max * (resolution * 1.0e3) ** 2.0 / dt
-        if nu > nu_max:
-            raise ValueError(
-                f'Laplacian viscosity cannot be set to {nu}; '
-                f'maximum value is {nu_max} or decrease the time step'
-            )
 
         options = {'config_dt': dt_str, 'config_density0': rho_0}
         self.add_model_config_options(
@@ -226,6 +227,7 @@ class Forward(OceanModelStep):
             dt_btr=dt_btr_str,
             stop_time=stop_time_str,
             output_interval=output_interval_str,
+            use_del2=f'{self.test_name == "munk"}',
             nu=f'{nu:02g}',
             rd=f'{rd:02g}',
             slip_factor=f'{slip_factor_dict[self.boundary_condition]:02g}',

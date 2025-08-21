@@ -63,6 +63,7 @@ class Analysis(OceanIOStep):
             ds_mesh,
             self.config,
             loc='Vertex',
+            test_name=self.test_name,
             boundary_condition=self.boundary_condition,
         )
 
@@ -194,6 +195,7 @@ class Analysis(OceanIOStep):
             ds_mesh,
             self.config,
             loc=loc,
+            test_name=self.test_name,
             boundary_condition=self.boundary_condition,
         )
         ds_out = ds_out.isel(Time=-1)
@@ -214,7 +216,12 @@ class Analysis(OceanIOStep):
         return error
 
     def exact_solution(
-        self, ds_mesh, config, loc='Cell', boundary_condition='free slip'
+        self,
+        ds_mesh,
+        config,
+        loc='Cell',
+        test_name='munk',
+        boundary_condition='free slip',
     ):
         """
         Exact solution to the sea surface height for the linearized Munk layer
@@ -238,45 +245,62 @@ class Analysis(OceanIOStep):
 
         # df/dy where f is coriolis parameter
         beta = config.getfloat('barotropic_gyre', 'beta')
-        # Laplacian viscosity
-        nu = config.getfloat(
-            f'barotropic_gyre_{test_name}_{boundary_condition}', 'nu_2'
-        )
 
-        # Compute some non-dimensional numbers
-        delta_m = (nu / (beta * L_y**3.0)) ** (1.0 / 3.0)
-        gamma = (np.sqrt(3.0) * x) / (2.0 * delta_m * L_x)
-        x_maxpsi = 2 * delta_m / np.sqrt(3.0)
-        logger.info(f'Streamfunction should reach maximum at x = {x_maxpsi}')
-
-        if boundary_condition == 'no-slip':
-            psi = (
-                pi
-                * np.sin(pi * y / L_y)
-                * (
-                    1.0
-                    - (x / L_x)
-                    - np.exp(-x / (2.0 * delta_m * L_x))
-                    * (
-                        np.cos(gamma)
-                        + ((1.0 - 2 * delta_m) / np.sqrt(3.0)) * np.sin(gamma)
-                    )
-                    + delta_m * np.exp(((x / L_x) - 1) / delta_m)
-                )
+        if test_name == 'munk':
+            # Laplacian viscosity
+            nu = config.getfloat(
+                f'barotropic_gyre_{test_name}_{boundary_condition}', 'nu_2'
             )
 
-        elif boundary_condition == 'free-slip':
-            psi = (
-                pi
-                * np.sin(pi * (y / L_y))
-                * (
-                    (1.0 - (x / L_x) - delta_m)
-                    + (np.exp((-(x / L_x)) / (2.0 * delta_m)))
+            # Compute some non-dimensional numbers
+            delta_m = (nu / (beta * L_y**3.0)) ** (1.0 / 3.0)
+            gamma = (np.sqrt(3.0) * x) / (2.0 * delta_m * L_x)
+            x_maxpsi = 2 * delta_m / np.sqrt(3.0)
+            logger.info(
+                f'Streamfunction should reach maximum at x = {x_maxpsi}'
+            )
+
+            if boundary_condition == 'no-slip':
+                psi = (
+                    pi
+                    * np.sin(pi * y / L_y)
                     * (
-                        (-2 / 3) * (1 - delta_m) * np.cos(gamma - (pi / 6))
-                        + ((2.0 / np.sqrt(3.0)) * np.sin(gamma))
+                        1.0
+                        - (x / L_x)
+                        - np.exp(-x / (2.0 * delta_m * L_x))
+                        * (
+                            np.cos(gamma)
+                            + ((1.0 - 2 * delta_m) / np.sqrt(3.0))
+                            * np.sin(gamma)
+                        )
+                        + delta_m * np.exp(((x / L_x) - 1) / delta_m)
                     )
-                    + delta_m * np.exp((((x / L_x) - 1) / delta_m))
                 )
+
+            elif boundary_condition == 'free-slip':
+                psi = (
+                    pi
+                    * np.sin(pi * (y / L_y))
+                    * (
+                        (1.0 - (x / L_x) - delta_m)
+                        + (np.exp((-(x / L_x)) / (2.0 * delta_m)))
+                        * (
+                            (-2 / 3) * (1 - delta_m) * np.cos(gamma - (pi / 6))
+                            + ((2.0 / np.sqrt(3.0)) * np.sin(gamma))
+                        )
+                        + delta_m * np.exp((((x / L_x) - 1) / delta_m))
+                    )
+                )
+        if test_name == 'stommel' and boundary_condition == 'free-slip':
+            # Maximum wind stress
+            tau_0 = config.getfloat('barotropic_gyre', 'tau_0')
+            # Maximum wind stress
+            rd = config.getfloat(
+                f'barotropic_gyre_{test_name}_{boundary_condition}', 'rd'
+            )
+            psi = (
+                (tau_0 * pi / beta)
+                * (1 - x / L_x - np.exp(-x * beta / rd))
+                * np.sin(pi * y / L_y)
             )
         return psi

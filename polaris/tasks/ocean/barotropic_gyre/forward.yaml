@@ -6,7 +6,7 @@ ocean:
     config_dt: {{ dt }}
     config_time_integrator: RK4
   hmix_del2:
-    config_use_mom_del2: true
+    config_use_mom_del2: {{ use_del2 }}
     config_mom_del2: {{ nu }}
   streams:
     mesh:

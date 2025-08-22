@@ -54,8 +54,12 @@ class Analysis(OceanIOStep):
         ds_init = xr.open_dataset('init.nc')
         ds = xr.open_dataset('output.nc')
 
+        time_index = -1
         field_mpas = compute_barotropic_streamfunction(
-            ds_init.isel(Time=0), ds, prefix='', time_index=-1
+            ds_init.isel(Time=0),
+            ds,
+            prefix='',
+            time_index=time_index,
         )
         x_maxpsi = ds_mesh.xVertex.isel(nVertices=np.argmax(field_mpas.values))
         logger.info(f'Streamfunction reaches maximum at x = {x_maxpsi.values}')
@@ -95,11 +99,11 @@ class Analysis(OceanIOStep):
         # convert to km
         descriptor.vertex_patches *= 1.0e-3
 
-        eta0 = max(
-            np.max(np.abs(field_exact.values)),
-            np.max(np.abs(field_mpas.values)),
-        )
-
+        # eta0 = max(
+        #    np.max(np.abs(field_exact.values)),
+        #    np.max(np.abs(field_mpas.values)),
+        # )
+        eta0 = np.max(np.abs(field_mpas.values))
         bounds = np.linspace(-eta0, eta0, 21)
         norm = mcolors.BoundaryNorm(bounds, cmocean.cm.amp.N)
         s = mosaic.polypcolor(
@@ -112,6 +116,10 @@ class Analysis(OceanIOStep):
         )
         cbar = fig.colorbar(s, ax=axes[0])
         cbar.ax.set_title(r'$\psi$')
+
+        eta0 = np.max(np.abs(field_exact.values))
+        bounds = np.linspace(-eta0, eta0, 21)
+        norm = mcolors.BoundaryNorm(bounds, cmocean.cm.amp.N)
         s = mosaic.polypcolor(
             axes[1],
             descriptor,
@@ -293,14 +301,16 @@ class Analysis(OceanIOStep):
                 )
         if test_name == 'stommel' and boundary_condition == 'free-slip':
             # Maximum wind stress
-            tau_0 = config.getfloat('barotropic_gyre', 'tau_0')
+            # tau_0 = config.getfloat('barotropic_gyre', 'tau_0')
             # Maximum wind stress
             rd = config.getfloat(
                 f'barotropic_gyre_{test_name}_{boundary_condition}', 'rd'
             )
+            eps = rd / (L_x * beta)
+            logger.info(f'eps = {eps}, should be << 1')
             psi = (
-                (tau_0 * pi / beta)
-                * (1 - x / L_x - np.exp(-x * beta / rd))
+                pi  # (tau_0 / beta)
                 * np.sin(pi * y / L_y)
+                * (1 - (x / L_x) + np.exp(-x / (L_x * eps)))
             )
         return psi

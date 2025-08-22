@@ -199,7 +199,7 @@ class Forward(OceanModelStep):
                 )
         else:
             nu = 0.0
-            dt = 60.0
+            dt = 30.0
 
         dt_str = get_time_interval_string(seconds=dt)
         dt_btr_str = get_time_interval_string(seconds=dt / 20.0)
@@ -218,7 +218,7 @@ class Forward(OceanModelStep):
                 '0000_%H:%M:%S', time.gmtime(run_duration)
             )
         else:
-            stop_time_str = time.strftime('0004-01-01_00:00:00')
+            stop_time_str = time.strftime('0002-01-01_00:00:00')
             output_interval_str = time.strftime('0000-01-00_00:00:00')
 
         slip_factor_dict = {'no-slip': 0.0, 'free-slip': 1.0}

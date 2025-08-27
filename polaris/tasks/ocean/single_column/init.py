@@ -1,14 +1,13 @@
 import numpy as np
 import xarray as xr
-from mpas_tools.io import write_netcdf
 from mpas_tools.mesh.conversion import convert, cull
 from mpas_tools.planar_hex import make_planar_hex_mesh
 
-from polaris import Step
+from polaris.ocean.model import OceanIOStep
 from polaris.ocean.vertical import init_vertical_coord
 
 
-class Init(Step):
+class Init(OceanIOStep):
     """
     A step for creating a mesh and initial condition for single column
     test cases
@@ -41,6 +40,9 @@ class Init(Step):
         ]:
             self.add_output_file(file)
 
+    def setup(self):
+        super().setup()
+
     def run(self):
         """
         Run this step of the test case
@@ -56,12 +58,12 @@ class Init(Step):
         ds_mesh = make_planar_hex_mesh(
             nx=nx, ny=ny, dc=dc, nonperiodic_x=False, nonperiodic_y=False
         )
-        write_netcdf(ds_mesh, 'base_mesh.nc')
+        self.write_model_dataset(ds_mesh, 'base_mesh.nc')
         ds_mesh = cull(ds_mesh, logger=logger)
         ds_mesh = convert(
             ds_mesh, graphInfoFileName='culled_graph.info', logger=logger
         )
-        write_netcdf(ds_mesh, 'culled_mesh.nc')
+        self.write_model_dataset(ds_mesh, 'culled_mesh.nc')
 
         ds = ds_mesh.copy()
         x_cell = ds_mesh.xCell
@@ -153,7 +155,7 @@ class Init(Step):
         ds.attrs['nx'] = nx
         ds.attrs['ny'] = ny
         ds.attrs['dc'] = dc
-        write_netcdf(ds, 'initial_state.nc')
+        self.write_model_dataset(ds, 'initial_state.nc')
 
         # create forcing stream
         ds_forcing = xr.Dataset()
@@ -239,4 +241,4 @@ class Init(Step):
         ds_forcing['icebergFreshWaterFlux'] = (
             iceberg_flux * forcing_array_surface
         )
-        write_netcdf(ds_forcing, 'forcing.nc')
+        self.write_model_dataset(ds_forcing, 'forcing.nc')

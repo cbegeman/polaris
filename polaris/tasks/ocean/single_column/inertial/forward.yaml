@@ -1,6 +1,7 @@
-mpas-ocean:
+ocean:
   time_management:
     config_run_duration: 0010_00:00:00
+mpas-ocean:
   tracer_forcing_activeTracers:
     config_use_activeTracers_surface_bulk_forcing: false
     config_use_activeTracers_surface_restoring: false
@@ -14,6 +15,19 @@ Omega:
     FluxThicknessType: Center
   Dimension:
     NVertLevels: 1
+  Tendencies:
+    ThicknessFluxTendencyEnable: true
+    PVTendencyEnable: true
+    KETendencyEnable: true
+    SSHTendencyEnable: true
+    VelDiffTendencyEnable: false
+    VelHyperDiffTendencyEnable: false
+    TracerHorzAdvTendencyEnable: false
+    TracerDiffTendencyEnable: false
+    TracerHyperDiffTendencyEnable: true
+    UseCustomTendency: false
+    ManufacturedSolutionTendency: false
+    WindForcingTendencyEnable: true
   IOStreams:
     InitialState:
       UsePointerFile: false
@@ -24,19 +38,24 @@ Omega:
       FreqUnits: OnStartup
       UseStartEnd: false
       Contents:
-        - State
-        - WindStressZonal
-        - WindStressMeridional
+      - NormalVelocity
+      - LayerThickness
+      - WindStressZonal
+      - WindStressMeridional
+      FileFreq: 9999
+      FileFreqUnits: years
     History:
       UsePointerFile: false
       Filename: output.nc
-      Freq: {{ output_frequency }}
-      FreqUnits: {{ output_frequency_units }}
-      IfExists: replace
-      # effectively never
-      FileFreq: 9999
-      FileFreqUnits: years
+      Mode: write
+      IfExists: append
+      Precision: double
+      Freq: 1
+      FreqUnits: Seconds
       UseStartEnd: false
       Contents:
-        - State
-        - SshCell
+      - NormalVelocity
+      - LayerThickness
+      - SshCellDefault
+      FileFreq: 9999
+      FileFreqUnits: years

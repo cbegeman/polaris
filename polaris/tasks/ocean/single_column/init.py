@@ -163,6 +163,8 @@ class Init(Step):
             dim='Time', axis=0
         )
         section = config['single_column_forcing']
+        ice_velocity_amplitude = section.getfloat('ice_velocity_amplitude')
+        ice_velocity_period = section.getfloat('ice_velocity_period')
         temperature_piston_velocity = section.getfloat(
             'temperature_piston_velocity'
         )
@@ -192,6 +194,13 @@ class Init(Step):
         wind_stress_zonal = section.getfloat('wind_stress_zonal')
         wind_stress_meridional = section.getfloat('wind_stress_meridional')
 
+        t = 0.0
+        ds_forcing['iceVelocityZonal'] = (
+            ice_velocity_amplitude
+            * np.sin(2 * np.pi * t / ice_velocity_period)
+            * forcing_array_surface
+        )
+        ds_forcing['iceVelocityMeridional'] = 0.0 * forcing_array_surface
         ds_forcing['temperaturePistonVelocity'] = (
             temperature_piston_velocity * forcing_array_surface
         )

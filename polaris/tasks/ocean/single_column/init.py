@@ -196,15 +196,50 @@ class Init(Step):
         wind_stress_meridional = section.getfloat('wind_stress_meridional')
 
         t = 0.0
-        # TODO add surface stress variable to mimic what's coming from coupler
-
-        ds_forcing['iceVelocityZonal'] = ice_fraction * forcing_array_surface
-        ds_forcing['iceVelocityZonal'] = (
+        t = ice_velocity_period / 4.0
+        t = ice_velocity_period / 2.0
+        drag_coeff = 5.36e-3
+        rho_sw = 1026.0
+        ds_forcing['iceFraction'] = ice_fraction * forcing_array_surface
+        ice_velocity_zonal = (
+            ice_velocity_amplitude
+            * np.cos(2 * np.pi * t / ice_velocity_period)
+            * forcing_array_surface
+        )
+        ice_velocity_meridional = (
             ice_velocity_amplitude
             * np.sin(2 * np.pi * t / ice_velocity_period)
             * forcing_array_surface
         )
-        ds_forcing['iceVelocityMeridional'] = 0.0 * forcing_array_surface
+        rel_velocity_zonal = ice_velocity_zonal - u * forcing_array_surface
+        rel_velocity_meridional = (
+            ice_velocity_meridional - v * forcing_array_surface
+        )
+        ice_stress_zonal = (
+            rho_sw
+            * drag_coeff
+            * rel_velocity_zonal
+            * np.sqrt(rel_velocity_zonal**2)
+        )
+        ice_stress_meridional = (
+            rho_sw
+            * drag_coeff
+            * rel_velocity_meridional
+            * np.sqrt(rel_velocity_meridional**2)
+        )
+        sfc_stress_zonal = (
+            1 - ice_fraction
+        ) * wind_stress_zonal + ice_fraction * ice_stress_zonal
+        sfc_stress_meridional = (
+            1 - ice_fraction
+        ) * wind_stress_meridional + ice_fraction * ice_stress_meridional
+        ds_forcing['iceVelocityZonal'] = (
+            ice_velocity_zonal * forcing_array_surface
+        )
+        ds_forcing['iceVelocityMeridional'] = (
+            ice_velocity_meridional * forcing_array_surface
+        )
+
         ds_forcing['temperaturePistonVelocity'] = (
             temperature_piston_velocity * forcing_array_surface
         )
@@ -226,10 +261,10 @@ class Init(Step):
         ds_forcing['temperatureInteriorRestoringValue'] = temperature
         ds_forcing['salinityInteriorRestoringValue'] = salinity
         ds_forcing['windStressZonal'] = (
-            wind_stress_zonal * forcing_array_surface
+            sfc_stress_zonal * forcing_array_surface
         )
         ds_forcing['windStressMeridional'] = (
-            wind_stress_meridional * forcing_array_surface
+            sfc_stress_meridional * forcing_array_surface
         )
         ds_forcing['latentHeatFlux'] = latent_heat_flux * forcing_array_surface
         ds_forcing['sensibleHeatFlux'] = (

@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 from mpas_tools.io import write_netcdf
@@ -71,6 +72,7 @@ class Init(Step):
         init_vertical_coord(config, ds)
 
         section = config['single_column']
+        simulation_duration_days = section.getfloat('simulation_duration')
         surface_temperature = section.getfloat('surface_temperature')
         temperature_gradient_mixed_layer = section.getfloat(
             'temperature_gradient_mixed_layer'
@@ -156,16 +158,14 @@ class Init(Step):
         write_netcdf(ds, 'initial_state.nc')
 
         # create forcing stream
-        ds_forcing = xr.Dataset()
         forcing_array = xr.ones_like(temperature)
         forcing_array_surface = xr.ones_like(ds.bottomDepth)
-        forcing_array_surface = forcing_array_surface.expand_dims(
-            dim='Time', axis=0
-        )
         section = config['single_column_forcing']
         ice_fraction = section.getfloat('ice_fraction')
         ice_velocity_amplitude = section.getfloat('ice_velocity_amplitude')
-        ice_velocity_period = section.getfloat('ice_velocity_period')
+        ice_velocity_period_days = section.getfloat('ice_velocity_period')
+        forcing_freq_min = section.getfloat('forcing_frequency')
+
         temperature_piston_velocity = section.getfloat(
             'temperature_piston_velocity'
         )
@@ -195,96 +195,132 @@ class Init(Step):
         wind_stress_zonal = section.getfloat('wind_stress_zonal')
         wind_stress_meridional = section.getfloat('wind_stress_meridional')
 
-        t = 0.0
-        t = ice_velocity_period / 4.0
-        t = ice_velocity_period / 2.0
-        drag_coeff = 5.36e-3
-        rho_sw = 1026.0
-        ds_forcing['iceFraction'] = ice_fraction * forcing_array_surface
-        ice_velocity_zonal = (
-            ice_velocity_amplitude
-            * np.cos(2 * np.pi * t / ice_velocity_period)
-            * forcing_array_surface
-        )
-        ice_velocity_meridional = (
-            ice_velocity_amplitude
-            * np.sin(2 * np.pi * t / ice_velocity_period)
-            * forcing_array_surface
-        )
-        rel_velocity_zonal = ice_velocity_zonal - u * forcing_array_surface
-        rel_velocity_meridional = (
-            ice_velocity_meridional - v * forcing_array_surface
-        )
-        ice_stress_zonal = (
-            rho_sw
-            * drag_coeff
-            * rel_velocity_zonal
-            * np.sqrt(rel_velocity_zonal**2)
-        )
-        ice_stress_meridional = (
-            rho_sw
-            * drag_coeff
-            * rel_velocity_meridional
-            * np.sqrt(rel_velocity_meridional**2)
-        )
-        sfc_stress_zonal = (
-            1 - ice_fraction
-        ) * wind_stress_zonal + ice_fraction * ice_stress_zonal
-        sfc_stress_meridional = (
-            1 - ice_fraction
-        ) * wind_stress_meridional + ice_fraction * ice_stress_meridional
-        ds_forcing['iceVelocityZonal'] = (
-            ice_velocity_zonal * forcing_array_surface
-        )
-        ds_forcing['iceVelocityMeridional'] = (
-            ice_velocity_meridional * forcing_array_surface
-        )
+        if ice_velocity_period_days > 0.0:
+            dates = []
+            simulation_duration_min = 24.0 * 60.0 * simulation_duration_days
+            ice_velocity_period_min = ice_velocity_period_days * 24.0 * 60.0
+            t = np.arange(0, simulation_duration_min, forcing_freq_min)
+            nt = len(t)
+            # should be equal to simulation_duration_min / forcing_freq_min
+            for it in range(nt):
+                dates.append(
+                    f'0001-01-01_00:{it * forcing_freq_min:02g}:00'.ljust(64)
+                )
+            ds_forcing = xr.Dataset()
+            ds_forcing['xtime'] = xr.DataArray(
+                data=dates, dims=('Time')
+            ).astype('S')
+            drag_coeff = 5.36e-3
+            rho_sw = 1026.0
+            forcing_array_surface = [forcing_array_surface] * ds_forcing.sizes[
+                'Time'
+            ]
+            forcing_da = xr.concat(forcing_array_surface, dim='Time')
+            ice_velocity_zonal = forcing_da.values
+            ice_velocity_meridional = forcing_da.values
+            for it, ti in enumerate(t):
+                ice_velocity_zonal[it, :] = ice_velocity_amplitude * np.cos(
+                    2 * np.pi * ti / ice_velocity_period_min
+                )
+                ice_velocity_meridional[it, :] = (
+                    ice_velocity_amplitude
+                    * np.sin(2 * np.pi * ti / ice_velocity_period_min)
+                )
+            rel_velocity_zonal = ice_velocity_zonal - u
+            rel_velocity_meridional = ice_velocity_meridional - v
 
-        ds_forcing['temperaturePistonVelocity'] = (
-            temperature_piston_velocity * forcing_array_surface
-        )
-        ds_forcing['salinityPistonVelocity'] = (
-            salinity_piston_velocity * forcing_array_surface
-        )
-        ds_forcing['temperatureSurfaceRestoringValue'] = (
-            temperature_surface_restoring_value * forcing_array_surface
-        )
-        ds_forcing['salinitySurfaceRestoringValue'] = (
-            salinity_surface_restoring_value * forcing_array_surface
-        )
-        ds_forcing['temperatureInteriorRestoringRate'] = (
-            temperature_interior_restoring_rate * forcing_array
-        )
-        ds_forcing['salinityInteriorRestoringRate'] = (
-            salinity_interior_restoring_rate * forcing_array
-        )
-        ds_forcing['temperatureInteriorRestoringValue'] = temperature
-        ds_forcing['salinityInteriorRestoringValue'] = salinity
-        ds_forcing['windStressZonal'] = (
-            sfc_stress_zonal * forcing_array_surface
-        )
-        ds_forcing['windStressMeridional'] = (
-            sfc_stress_meridional * forcing_array_surface
-        )
-        ds_forcing['latentHeatFlux'] = latent_heat_flux * forcing_array_surface
-        ds_forcing['sensibleHeatFlux'] = (
-            sensible_heat_flux * forcing_array_surface
-        )
-        ds_forcing['shortWaveHeatFlux'] = (
-            shortwave_heat_flux * forcing_array_surface
-        )
-        ds_forcing['evaporationFlux'] = (
-            evaporation_flux * forcing_array_surface
-        )
-        ds_forcing['rainFlux'] = rain_flux * forcing_array_surface
-        ds_forcing['riverRunoffFlux'] = (
-            river_runoff_flux * forcing_array_surface
-        )
-        ds_forcing['iceRunoffFlux'] = ice_runoff_flux * forcing_array_surface
-        ds_forcing['subglacialRunoffFlux'] = (
-            subglacial_runoff_flux * forcing_array_surface
-        )
-        ds_forcing['icebergFreshWaterFlux'] = (
-            iceberg_flux * forcing_array_surface
-        )
+            ice_stress_zonal = (
+                rho_sw
+                * drag_coeff
+                * rel_velocity_zonal
+                * np.sqrt(rel_velocity_zonal**2)
+            )
+            ice_stress_meridional = (
+                rho_sw
+                * drag_coeff
+                * rel_velocity_meridional
+                * np.sqrt(rel_velocity_meridional**2)
+            )
+            sfc_stress_zonal = (
+                1 - ice_fraction
+            ) * wind_stress_zonal + ice_fraction * ice_stress_zonal
+            sfc_stress_meridional = (
+                1 - ice_fraction
+            ) * wind_stress_meridional + ice_fraction * ice_stress_meridional
+
+            ds_forcing['iceVelocityZonal'] = ice_velocity_zonal * forcing_da
+            ds_forcing['iceVelocityMeridional'] = (
+                ice_velocity_meridional * forcing_da
+            )
+
+            ds_forcing['iceFraction'] = ice_fraction * forcing_da
+
+            ds_forcing['windStressZonal'] = sfc_stress_zonal * forcing_da
+            ds_forcing['windStressMeridional'] = (
+                sfc_stress_meridional * forcing_da
+            )
+
+            ds_forcing.encoding['unlimited_dims'] = {'Time'}
+            ds_temp = ds_forcing.isel(nCells=0)
+            plt.figure()
+            plt.plot(t, ds_temp.windStressZonal)
+            plt.plot(t, ds_temp.windStressMeridional)
+            plt.savefig('wind_stress_time.png')
+        else:
+            ds_forcing = xr.Dataset()
+            forcing_array_surface = forcing_array_surface.expand_dims(
+                dim='Time', axis=0
+            )
+            ds_forcing['temperaturePistonVelocity'] = (
+                temperature_piston_velocity * forcing_array_surface
+            )
+            ds_forcing['salinityPistonVelocity'] = (
+                salinity_piston_velocity * forcing_array_surface
+            )
+            ds_forcing['temperatureSurfaceRestoringValue'] = (
+                temperature_surface_restoring_value * forcing_array_surface
+            )
+            ds_forcing['salinitySurfaceRestoringValue'] = (
+                salinity_surface_restoring_value * forcing_array_surface
+            )
+            ds_forcing['temperatureInteriorRestoringRate'] = (
+                temperature_interior_restoring_rate * forcing_array
+            )
+            ds_forcing['salinityInteriorRestoringRate'] = (
+                salinity_interior_restoring_rate * forcing_array
+            )
+            ds_forcing['temperatureInteriorRestoringValue'] = temperature
+            ds_forcing['salinityInteriorRestoringValue'] = salinity
+            ds_forcing['latentHeatFlux'] = (
+                latent_heat_flux * forcing_array_surface
+            )
+            ds_forcing['sensibleHeatFlux'] = (
+                sensible_heat_flux * forcing_array_surface
+            )
+            ds_forcing['shortWaveHeatFlux'] = (
+                shortwave_heat_flux * forcing_array_surface
+            )
+            ds_forcing['evaporationFlux'] = (
+                evaporation_flux * forcing_array_surface
+            )
+            ds_forcing['rainFlux'] = rain_flux * forcing_array_surface
+            ds_forcing['riverRunoffFlux'] = (
+                river_runoff_flux * forcing_array_surface
+            )
+            ds_forcing['iceRunoffFlux'] = (
+                ice_runoff_flux * forcing_array_surface
+            )
+            ds_forcing['subglacialRunoffFlux'] = (
+                subglacial_runoff_flux * forcing_array_surface
+            )
+            ds_forcing['icebergFreshWaterFlux'] = (
+                iceberg_flux * forcing_array_surface
+            )
+
+            ds_forcing['windStressZonal'] = (
+                wind_stress_zonal * forcing_array_surface
+            )
+            ds_forcing['windStressMeridional'] = (
+                wind_stress_meridional * forcing_array_surface
+            )
         write_netcdf(ds_forcing, 'forcing.nc')

@@ -134,6 +134,9 @@ def plot_global_mpas_field(
     if ticks is not None:
         cbar.set_ticks(ticks)
         cbar.set_ticklabels([f'{tick}' for tick in ticks])
+    kwargs = config.getexpression(colormap_section, 'norm_args')
+    if 'vmin' in kwargs and 'vmax' in kwargs:
+        pc.set_clim(kwargs['vmin'], kwargs['vmax'])
 
     fig.savefig(out_filename, dpi=dpi, bbox_inches='tight', pad_inches=0.1)
 

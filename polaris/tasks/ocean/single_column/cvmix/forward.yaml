@@ -13,6 +13,15 @@ mpas-ocean:
   hmix_del4:
     config_use_mom_del4: true
     config_mom_del4: 2.0e14
+  cvmix:
+    config_use_cvmix_convection: true
+    config_use_cvmix_shear: true
+  eos:
+    config_eos_type: linear
+  eos_linear:
+    config_eos_linear_beta: 0.01
+
+mpas-ocean:
   frazil_ice:
     config_use_frazil_ice_formation: true
   tracer_forcing_activeTracers:
@@ -20,8 +29,6 @@ mpas-ocean:
     config_use_activeTracers_surface_restoring: true
     config_use_activeTracers_interior_restoring: true
   cvmix:
-    config_use_cvmix_convection: true
-    config_use_cvmix_shear: true
     config_cvmix_shear_mixing_scheme: KPP
     config_use_cvmix_kpp: true
     config_cvmix_kpp_matching: MatchBoth

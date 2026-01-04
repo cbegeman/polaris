@@ -57,12 +57,13 @@ class VizHorizField(OceanIOStep):
             max_longitude = 360.0 - min_longitude
             min_longitude = max_longitude_copy
         cell_indices = np.where(
-            (ds_mesh.maxLevelCell > 0)
-            & (lat_cell >= min_latitude)
+            (lat_cell >= min_latitude)
             & (lat_cell <= max_latitude)
             & (lon_cell >= min_longitude)
             & (lon_cell <= max_longitude)
         )
+        if 'maxLevelCell' in ds_mesh.keys():
+            cell_indices = (ds_mesh.maxLevelCell > 0) & cell_indices
         if len(cell_indices[0]) == 0:
             raise ValueError(
                 f'No cells of {ds_mesh.sizes["nCells"]} cells found within the'
@@ -77,17 +78,22 @@ class VizHorizField(OceanIOStep):
             f'{ds_mesh.sizes["nCells"]} cells in the mesh'
         )
         ds_mesh = ds_mesh.isel(nCells=cell_indices[0])
-        z_target = section.getfloat('z_target')
-        z_bottom = ds_mesh['restingThickness'].cumsum(dim='nVertLevels')
-        dz = z_bottom.mean(dim='nCells') - z_target
-        z_index = np.argmin(np.abs(dz.values))
-        if dz[z_index] > 0 and z_index > 0:
-            z_index -= 1
-        z_mean = z_bottom.mean(dim='nCells')[z_index].values
-        print(
-            f'Using z_index {z_index} for z_target {z_target} '
-            f'with mean depth {z_mean} '
-        )
+        if 'nVertLevels' in ds_mesh.dims:
+            z_target = section.getfloat('z_target')
+            if 'restingThickness' in ds_mesh.keys():
+                h_rest = ds_mesh.restingThickness
+                z_bottom = h_rest.cumsum(dim='nVertLevels')
+                dz = z_bottom.mean(dim='nCells') - z_target
+                z_index = np.argmin(np.abs(dz.values))
+                if dz[z_index] > 0 and z_index > 0:
+                    z_index -= 1
+                z_mean = z_bottom.mean(dim='nCells')[z_index].values
+                print(
+                    f'Using z_index {z_index} for z_target {z_target} '
+                    f'with mean depth {z_mean} '
+                )
+            else:
+                z_index = 0
 
         ds = self.open_model_dataset(self.input_file, decode_timedelta=False)
 
@@ -119,14 +125,21 @@ class VizHorizField(OceanIOStep):
                     start_time = str(start_time)
                 time_stamp = f'_{start_time.split("_")[0]}'
 
-        ds = ds.isel(nCells=cell_indices[0])
-        if ds.sizes['nCells'] != ds_mesh.sizes['nCells']:
-            raise ValueError(
-                f'Number of cells in the mesh {ds_mesh.sizes["nCells"]} '
-                f'and input {ds.sizes["nCells"]} do not match. '
-            )
+        if 'nCells' in ds.dims:
+            ds = ds.isel(nCells=cell_indices[0])
+            if ds.sizes['nCells'] != ds_mesh.sizes['nCells']:
+                raise ValueError(
+                    f'Number of cells in the mesh {ds_mesh.sizes["nCells"]} '
+                    f'and input {ds.sizes["nCells"]} do not match. '
+                )
         viz_dict = get_viz_defaults()
 
+        if self.config.has_option(section_name, 'colormap_range_percent'):
+            colormap_range_percent = self.config.getfloat(
+                section_name, 'colormap_range_percent'
+            )
+        else:
+            colormap_range_percent = 0.0
         for var_name in self.variables:
             if 'accumulated' in var_name:
                 full_var_name = var_name
@@ -160,18 +173,12 @@ class VizHorizField(OceanIOStep):
                     cmap = viz_dict['default']['colormap']
                 self.config.set(section_name, 'colormap_name', value=cmap)
 
-            if self.config.has_option(section_name, 'colormap_range_percent'):
-                colormap_range_percent = self.config.getfloat(
-                    section_name, 'colormap_range_percent'
-                )
-            else:
-                colormap_range_percent = 0.0
-
             if colormap_range_percent > 0.0:
                 vmin = np.percentile(mpas_field.values, colormap_range_percent)
                 vmax = np.percentile(
                     mpas_field.values, 100.0 - colormap_range_percent
                 )
+                print(f'Colormap range: vmin: {vmin}, vmax: {vmax}')
             else:
                 vmin = mpas_field.min().values
                 vmax = mpas_field.max().values
@@ -211,11 +218,11 @@ class VizHorizField(OceanIOStep):
                     colormap_section='customizable_viz_horiz_field',
                     descriptor=descriptor,
                     colorbar_label=f'{var_name} [{units}]',
-                    plot_land=True,
+                    plot_land=False,
                     projection_name=projection_name,
                     central_longitude=central_longitude,
                 )
-            else:
+            elif 'nCells' in mpas_field.dims and 'nVertices' in ds_mesh.dims:
                 descriptor = plot_global_mpas_field(
                     mesh_filename=self.mesh_file,
                     da=mpas_field,
@@ -224,8 +231,13 @@ class VizHorizField(OceanIOStep):
                     colormap_section='customizable_viz_horiz_field',
                     descriptor=descriptor,
                     colorbar_label=f'{var_name} [{units}]',
-                    plot_land=True,
+                    plot_land=False,
                     projection_name=projection_name,
                     central_longitude=central_longitude,
                     cell_indices=cell_indices[0],
+                )
+            else:
+                raise ValueError(
+                    f'{var_name} does not have expected '
+                    'dimensions of nCells, nEdges, or nVertices'
                 )

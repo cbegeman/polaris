@@ -295,6 +295,7 @@ def plot_global_lat_lon_field(
 
     if plot_land:
         _add_land_lakes_coastline(ax)
+
     cax = inset_axes(
         ax,
         width='3%',

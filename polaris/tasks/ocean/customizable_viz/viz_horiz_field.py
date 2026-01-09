@@ -178,7 +178,6 @@ class VizHorizField(OceanIOStep):
                 vmax = np.percentile(
                     mpas_field.values, 100.0 - colormap_range_percent
                 )
-                print(f'Colormap range: vmin: {vmin}, vmax: {vmax}')
             else:
                 vmin = mpas_field.min().values
                 vmax = mpas_field.max().values
@@ -218,7 +217,7 @@ class VizHorizField(OceanIOStep):
                     colormap_section='customizable_viz_horiz_field',
                     descriptor=descriptor,
                     colorbar_label=f'{var_name} [{units}]',
-                    plot_land=False,
+                    plot_land=True,
                     projection_name=projection_name,
                     central_longitude=central_longitude,
                 )
@@ -231,7 +230,7 @@ class VizHorizField(OceanIOStep):
                     colormap_section='customizable_viz_horiz_field',
                     descriptor=descriptor,
                     colorbar_label=f'{var_name} [{units}]',
-                    plot_land=False,
+                    plot_land=True,
                     projection_name=projection_name,
                     central_longitude=central_longitude,
                     cell_indices=cell_indices[0],

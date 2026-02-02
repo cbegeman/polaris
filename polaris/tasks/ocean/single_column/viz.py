@@ -189,8 +189,8 @@ class Viz(OceanIOStep):
                     if 'nVertLevelsP1' in var_comp.dims:
                         var_comp = var_comp.isel(nVertLevelsP1=slice(0, -1))
                     # TODO delete this line when MPAS-O bug is fixed
-                    if field_name == 'RiTopOfCell':
-                        var_comp[0] = np.nan
+                    # if field_name == 'RiTopOfCell':
+                    #    var_comp[0] = np.nan
                     # TODO use this line when Omega zMid is correct
                     # z_mid_final = ds_comp['zMid'].mean(dim='nCells')
                     if 'layerThickness' not in ds.keys():

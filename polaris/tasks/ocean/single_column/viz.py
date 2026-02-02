@@ -5,6 +5,7 @@ import numpy as np
 
 from polaris.ocean.model import OceanIOStep
 from polaris.ocean.time import get_days_since_start
+from polaris.ocean.vertical import compute_zint_zmid_from_layer_thickness
 from polaris.ocean.vertical.diagnostics import depth_from_thickness
 from polaris.viz import use_mplstyle
 
@@ -200,9 +201,19 @@ class Viz(OceanIOStep):
                             'plotted state'
                         )
                     else:
-                        z_mid_final = depth_from_thickness(ds_final).mean(
+                        start_time = time.perf_counter()   # Record the end time
+                        z_mid_final, _ = depth_from_thickness(ds_final).mean(
                             dim='nCells'
                         )
+                        end_time = time.perf_counter()   # Record the end time
+                        elapsed_time = end_time - start_time
+                        print(f"depth_from_thickness: {elapsed_time:.6f} seconds.")
+                        start_time = time.perf_counter()   # Record the end time
+                        _, z_mid_alt = compute_zint_zmid_from_layer_thickness(
+                            ds_final.layerThickness, ds_init.bottomDepth, ds_init.minLevelCell, ds_init.maxLevelCell
+                        )
+                        elapsed_time = end_time - start_time
+                        print(f"compute_from_thickness: {elapsed_time:.6f} seconds.")
                     plt.plot(
                         var_comp,
                         z_mid_final,

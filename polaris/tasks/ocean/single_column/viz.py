@@ -203,13 +203,15 @@ class Viz(OceanIOStep):
                     # TODO delete this line when MPAS-O bug is fixed
                     # if field_name == 'RiTopOfCell':
                     #    var_comp[0] = np.nan
-                    # TODO use this line when Omega zMid is correct
                     z_mid_final = ds_final['zMid'].mean(dim='nCells')
                     print(
-                        f'zMid from output spans {z_mid_final.min()}, '
-                        f'{z_mid_final.max()}'
+                        f'zMid from input spans {z_mid_init.min().values}, '
+                        f'{z_mid_init.max().values}'
                     )
-                    z_mid_final = z_mid_init
+                    print(
+                        f'zMid from output spans {z_mid_final.min().values}, '
+                        f'{z_mid_final.max().values}'
+                    )
                     # if 'layerThickness' not in ds.keys():
                     #    z_mid_final = z_mid_init
                     #    self.logger.warn(
@@ -230,7 +232,6 @@ class Viz(OceanIOStep):
                     #    )
                     #    #elapsed_time = end_time - start_time
                     #    #print(f"compute_from_thickness: {elapsed_time:.6f}s")
-                    print(z_mid_final)
                     plt.plot(
                         var_comp,
                         z_mid_final,
@@ -239,12 +240,11 @@ class Viz(OceanIOStep):
                         label=comparison_name,
                     )
                 title = f'final time = {t_days:2.1g} days'
-                # plt.ylim([-100, 0])
+                plt.ylim([-100, 0])
                 if field_name == 'temperature':
                     plt.xlim([10, 20])
                 else:
                     plt.xlim(auto=True)
-                plt.ylim(auto=True)
                 plt.xlabel(f'{field_name} ({field_units})')
                 plt.ylabel('z (m)')
                 fig.legend(loc='center right')

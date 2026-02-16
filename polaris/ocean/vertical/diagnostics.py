@@ -68,11 +68,6 @@ def depth_from_thickness(ds):
         ds = ds.isel(Time=0)
     if 'nCells' not in ds.sizes and 'nVertLevels' not in ds.sizes:
         raise ValueError('nCells, and nVertLevels must be dimensions of ds')
-    if 'ssh' in ds.keys():
-        ssh = ds.ssh.isel(nVertLevels=0).values
-    # TODO remove this because it could lead to errors
-    else:
-        ssh = np.zeros((ds.sizes['nCells']))
     if 'nVertLevelsP1' in ds.dims:
         nz = ds.sizes['nVertLevelsP1']
     else:
@@ -83,7 +78,9 @@ def depth_from_thickness(ds):
     if 'maxLevelCell' in ds.keys():
         max_level_cell = ds.maxLevelCell
     else:
-        max_level_cell = xr.DataArray(nz * np.ones_like(ssh), dims=('nCells'))
+        max_level_cell = xr.DataArray(
+            nz * np.ones_like(ds.ssh), dims=('nCells')
+        )
     z_idx = xr.DataArray(
         np.tile(
             np.arange(1, ds.sizes['nVertLevels'] + 1),
@@ -93,10 +90,10 @@ def depth_from_thickness(ds):
     )
     layer_thickness = layer_thickness.where(z_idx <= max_level_cell, np.nan)
     z_int_array = np.zeros((ds.sizes['nCells'], nz))
-    z_int_array[:, 0] = ssh
+    z_int_array[:, 0] = ds.ssh
     z_int_array[:, 1:] = np.add(
         -layer_thickness.cumsum(dim='nVertLevels', skipna=False).values,
-        ssh[:, np.newaxis],
+        ds.ssh.expand_dims(dim='nVertLevels', axis=1).values,
     )
     z_interface = xr.DataArray(
         z_int_array,
@@ -108,7 +105,7 @@ def depth_from_thickness(ds):
     )
     if 'bottomDepth' in ds.keys():
         z_bed_infer = z_interface.isel(nVertLevelsP1=-1)
-        z_bed_data = ds.bottomDepth
+        z_bed_data = -ds.bottomDepth
         cell_diff = (z_bed_infer - z_bed_data).values
         if np.max(np.abs(cell_diff)) > 1.0e-3:
             print(

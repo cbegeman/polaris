@@ -175,6 +175,8 @@ class Ocean(Component):
             and config is not None
         ):
             ds['PseudoThickness'] = pseudothickness_from_ds(ds, config=config)
+            # We overwrite layerThickness until Omega accepts PseudoThickness
+            ds['layerThickness'] = ds.PseudoThickness
         ds = self.map_to_native_model_vars(ds)
         write_netcdf(ds=ds, fileName=filename)
 

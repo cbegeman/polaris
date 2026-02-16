@@ -115,4 +115,4 @@ def depth_from_thickness(ds):
                 'The maximum discrepancy between bottom_depth and the lower'
                 f'boundary of z_interface is {np.max(np.abs(cell_diff))}'
             )
-    return z_mid
+    return z_mid, z_interface

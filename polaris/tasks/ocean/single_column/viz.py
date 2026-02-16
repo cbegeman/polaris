@@ -205,6 +205,11 @@ class Viz(OceanIOStep):
                     #    var_comp[0] = np.nan
                     # TODO use this line when Omega zMid is correct
                     z_mid_final = ds_final['zMid'].mean(dim='nCells')
+                    print(
+                        f'zMid from output spans {z_mid_final.min()}, '
+                        f'{z_mid_final.max()}'
+                    )
+                    z_mid_final = z_mid_init
                     # if 'layerThickness' not in ds.keys():
                     #    z_mid_final = z_mid_init
                     #    self.logger.warn(

@@ -4,11 +4,11 @@ from mpas_tools.io import write_netcdf
 from mpas_tools.mesh.conversion import convert, cull
 from mpas_tools.planar_hex import make_planar_hex_mesh
 
-from polaris import Step
+from polaris.ocean.model import OceanIOStep
 from polaris.ocean.vertical import init_vertical_coord
 
 
-class Init(Step):
+class Init(OceanIOStep):
     """
     A step for creating a mesh and initial condition for single column
     test cases
@@ -232,4 +232,4 @@ class Init(Step):
         ds_forcing['icebergFreshWaterFlux'] = (
             iceberg_flux * forcing_array_surface
         )
-        write_netcdf(ds_forcing, 'initial_state.nc')
+        self.write_model_dataset(ds_forcing, 'initial_state.nc', config=config)

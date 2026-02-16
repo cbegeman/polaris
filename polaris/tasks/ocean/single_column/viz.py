@@ -5,8 +5,6 @@ import numpy as np
 
 from polaris.ocean.model import OceanIOStep
 from polaris.ocean.time import get_days_since_start
-from polaris.ocean.vertical import compute_zint_zmid_from_layer_thickness
-from polaris.ocean.vertical.diagnostics import depth_from_thickness
 from polaris.viz import use_mplstyle
 
 # TODO import rho_0 from constants
@@ -72,10 +70,16 @@ class Viz(OceanIOStep):
                 filename=f'{comparison_name}.nc',
                 target=f'{comparison_path}/output.nc',
             )
-            self.add_input_file(
-                filename=f'{comparison_name}_diags.nc',
-                target=f'{comparison_path}/output/KPP_test.0001-01-01_00.00.00.nc',
-            )
+
+    def configure(self):
+        model = self.config.get('ocean', 'model')
+        if model == 'mpas-ocean':
+            suffix = '0001-01-01_00.00.00'
+            for comparison_name, comparison_path in self.comparisons.items():
+                self.add_input_file(
+                    filename=f'{comparison_name}_diags.nc',
+                    target=f'{comparison_path}/output/KPP_test.{suffix}.nc',
+                )
 
     def run(self):
         """
@@ -165,13 +169,20 @@ class Viz(OceanIOStep):
                     ds_comp = self.open_model_dataset(
                         f'{comparison_name}.nc', decode_times=False
                     )
-                    ds_diags = self.open_model_dataset(
-                        f'{comparison_name}_diags.nc', decode_times=False
-                    )
                     if field_name in ds_comp.keys():
                         ds = ds_comp
-                    elif field_name in ds_diags.keys():
-                        ds = ds_diags
+                    elif os.path.exists(f'{comparison_name}_diags.nc'):
+                        ds_diags = self.open_model_dataset(
+                            f'{comparison_name}_diags.nc', decode_times=False
+                        )
+                        if field_name in ds_diags.keys():
+                            ds = ds_diags
+                        else:
+                            self.logger.warn(
+                                f'{field_name} not present in '
+                                f'{comparison_name}_diags.nc'
+                            )
+                            continue
                     else:
                         self.logger.warn(
                             f'{field_name} not present in {comparison_name}.nc'
@@ -193,27 +204,28 @@ class Viz(OceanIOStep):
                     # if field_name == 'RiTopOfCell':
                     #    var_comp[0] = np.nan
                     # TODO use this line when Omega zMid is correct
-                    # z_mid_final = ds_comp['zMid'].mean(dim='nCells')
-                    if 'layerThickness' not in ds.keys():
-                        z_mid_final = z_mid_init
-                        self.logger.warn(
-                            'Using initial zMid values; may not represent '
-                            'plotted state'
-                        )
-                    else:
-                        start_time = time.perf_counter()   # Record the end time
-                        z_mid_final, _ = depth_from_thickness(ds_final).mean(
-                            dim='nCells'
-                        )
-                        end_time = time.perf_counter()   # Record the end time
-                        elapsed_time = end_time - start_time
-                        print(f"depth_from_thickness: {elapsed_time:.6f} seconds.")
-                        start_time = time.perf_counter()   # Record the end time
-                        _, z_mid_alt = compute_zint_zmid_from_layer_thickness(
-                            ds_final.layerThickness, ds_init.bottomDepth, ds_init.minLevelCell, ds_init.maxLevelCell
-                        )
-                        elapsed_time = end_time - start_time
-                        print(f"compute_from_thickness: {elapsed_time:.6f} seconds.")
+                    z_mid_final = ds_final['zMid'].mean(dim='nCells')
+                    # if 'layerThickness' not in ds.keys():
+                    #    z_mid_final = z_mid_init
+                    #    self.logger.warn(
+                    #        'Using initial zMid values; may not represent '
+                    #        'plotted state'
+                    #    )
+                    # else:
+                    #    start_time = time.perf_counter()
+                    #    z_mid_final, _ = depth_from_thickness(ds_final)
+                    #    z_mid_final = z_mid_final.mean(dim='nCells')
+                    #    end_time = time.perf_counter()
+                    #    elapsed_time = end_time - start_time
+                    #    print(f"depth_from_thickness: {elapsed_time:.6f}s.")
+                    #    #start_time = time.perf_counter()
+                    #    _, z_mid_alt = compute_zint_zmid_from_layer_thickness(
+                    #        ds_final.layerThickness, ds_init.bottomDepth,
+                    #        ds_init.minLevelCell, ds_init.maxLevelCell
+                    #    )
+                    #    #elapsed_time = end_time - start_time
+                    #    #print(f"compute_from_thickness: {elapsed_time:.6f}s")
+                    print(z_mid_final)
                     plt.plot(
                         var_comp,
                         z_mid_final,
@@ -222,11 +234,12 @@ class Viz(OceanIOStep):
                         label=comparison_name,
                     )
                 title = f'final time = {t_days:2.1g} days'
-                plt.ylim([-100, 0])
+                # plt.ylim([-100, 0])
                 if field_name == 'temperature':
-                    plt.xlim([15, 20])
+                    plt.xlim([10, 20])
                 else:
                     plt.xlim(auto=True)
+                plt.ylim(auto=True)
                 plt.xlabel(f'{field_name} ({field_units})')
                 plt.ylabel('z (m)')
                 fig.legend(loc='center right')

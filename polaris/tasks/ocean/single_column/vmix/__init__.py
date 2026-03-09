@@ -49,19 +49,6 @@ class VMix(Task):
             Forward(
                 component=component,
                 indir=f'{indir}/{name}',
-                name='forward_pp',
-                ntasks=1,
-                min_tasks=1,
-                openmp_threads=1,
-                validate_vars=validate_vars,
-                task_name='vmix',
-                enable_vadv=False,
-            )
-        )
-        self.add_step(
-            Forward(
-                component=component,
-                indir=f'{indir}/{name}',
                 ntasks=1,
                 min_tasks=1,
                 openmp_threads=1,
@@ -78,7 +65,6 @@ class VMix(Task):
                 indir=f'{indir}/{name}',
                 comparisons={
                     'kpp': '../forward_kpp_no_vadv',
-                    'pp': '../forward_pp_no_vadv',
                 },
                 variables={
                     'temperature': 'degC',
@@ -96,7 +82,6 @@ class VMix(Task):
                 indir=f'{indir}/{name}',
                 comparisons={
                     'kpp': '../forward_kpp_no_vadv',
-                    'pp': '../forward_pp_no_vadv',
                 },
             )
         )

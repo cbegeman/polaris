@@ -16,6 +16,15 @@ mpas-ocean:
     config_eos_type: linear
   eos_linear:
     config_eos_linear_beta: 0.01
+  cvmix:
+    config_cvmix_background_diffusion: 1.0e-5
+    config_cvmix_background_viscosity: 1.0e-5
+    config_cvmix_convective_diffusion: 1.0
+    config_cvmix_convective_viscosity: 1.0
+    config_cvmix_shear_KPP_nu_zero: 0.005
+    config_cvmix_shear_KPP_Ri_zero: 0.7
+    config_cvmix_shear_KPP_exp: 3.0
+    config_cvmix_num_ri_smooth_loops: 3
 
 mpas-ocean:
   frazil_ice:
@@ -25,11 +34,10 @@ mpas-ocean:
     config_use_activeTracers_surface_restoring: false
     config_use_activeTracers_interior_restoring: false
   cvmix:
+    config_use_cvmix: true
     config_use_cvmix_kpp: false
-    config_cvmix_background_diffusion: 0.
-    config_cvmix_background_viscosity: 0.
-    config_cvmix_shear_mixing_scheme: PP
-    config_cvmix_num_ri_smooth_loops: 0
+    config_cvmix_shear_mixing_scheme: KPP
+    config_cvmix_background_scheme: constant
   streams:
     KPP_testing:
       contents:

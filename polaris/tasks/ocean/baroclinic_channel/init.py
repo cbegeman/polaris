@@ -1,19 +1,18 @@
 import cmocean  # noqa: F401
 import numpy as np
 import xarray as xr
-from mpas_tools.io import write_netcdf
 from mpas_tools.mesh.conversion import convert, cull
 from mpas_tools.ocean.viz.transect import compute_transect, plot_transect
 from mpas_tools.planar_hex import make_planar_hex_mesh
 
-from polaris import Step
 from polaris.mesh.planar import compute_planar_hex_nx_ny
 from polaris.mpas import cell_mask_to_edge_mask
+from polaris.ocean.model import OceanIOStep
 from polaris.ocean.vertical import init_vertical_coord
 from polaris.viz import plot_horiz_field
 
 
-class Init(Step):
+class Init(OceanIOStep):
     """
     A step for creating a mesh and initial condition for baroclinic channel
     tasks
@@ -71,13 +70,13 @@ class Init(Step):
         ds_mesh = make_planar_hex_mesh(
             nx=nx, ny=ny, dc=dc, nonperiodic_x=False, nonperiodic_y=True
         )
-        write_netcdf(ds_mesh, 'base_mesh.nc')
+        self.write_model_dataset(ds_mesh, 'base_mesh.nc', config)
 
         ds_mesh = cull(ds_mesh, logger=logger)
         ds_mesh = convert(
             ds_mesh, graphInfoFileName='culled_graph.info', logger=logger
         )
-        write_netcdf(ds_mesh, 'culled_mesh.nc')
+        self.write_model_dataset(ds_mesh, 'culled_mesh.nc', config)
 
         section = config['baroclinic_channel']
         use_distances = section.getboolean('use_distances')
@@ -176,7 +175,7 @@ class Init(Step):
         ds.attrs['ny'] = ny
         ds.attrs['dc'] = dc
 
-        write_netcdf(ds, 'initial_state.nc')
+        self.write_model_dataset(ds, 'initial_state.nc', config)
 
         cell_mask = ds.maxLevelCell >= 1
         edge_mask = cell_mask_to_edge_mask(ds, cell_mask)

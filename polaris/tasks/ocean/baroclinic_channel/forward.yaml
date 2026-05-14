@@ -1,6 +1,8 @@
 ocean:
   time_integration:
     config_time_integrator: RK4
+  advection:
+    config_horiz_tracer_adv_order: 2
   hmix_del2:
     config_use_mom_del2: true
     config_mom_del2: 10.0
@@ -29,7 +31,7 @@ mpas-ocean:
     output:
       type: output
       filename_template: output.nc
-      output_interval: 0000_00:00:01
+      output_interval: 0002_00:00:00
       clobber_mode: truncate
       contents:
       - tracers

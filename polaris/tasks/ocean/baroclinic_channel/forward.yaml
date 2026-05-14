@@ -1,4 +1,6 @@
 ocean:
+  time_integration:
+    config_time_integrator: RK4
   hmix_del2:
     config_use_mom_del2: true
     config_mom_del2: 10.0
@@ -36,8 +38,6 @@ mpas-ocean:
       - layerThickness
 
 Omega:
-  TimeIntegration:
-    TimeStepper: RungeKutta4
   Advection:
     VerticalTracerFluxLimiterEnable: false
   Eos:

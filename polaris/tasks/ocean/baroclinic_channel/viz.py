@@ -83,16 +83,16 @@ class Viz(OceanIOStep):
         """
         Run this step of the task
         """
-        ds_mesh = self.open_model_dataset('mesh.nc')
-        ds_init = self.open_model_dataset('init.nc')
-        ds = self.open_model_dataset('output.nc')
+        ds_mesh = self.open_model_dataset('mesh.nc', config=self.config)
+        ds_init = self.open_model_dataset('init.nc', config=self.config)
+        ds = self.open_model_dataset('output.nc', config=self.config)
 
         t_index = ds.sizes['Time'] - 1
         cell_mask = ds_init.maxLevelCell >= 1
         edge_mask = cell_mask_to_edge_mask(ds_init, cell_mask)
         max_velocity = np.max(np.abs(ds.normalVelocity.values))
 
-        step = 10
+        step = 1
         for t_index in range(0, ds.sizes['Time'], step):
             plot_horiz_field(
                 ds_mesh,
@@ -115,6 +115,7 @@ class Viz(OceanIOStep):
             )
             x = x_mid * xr.ones_like(y)
 
+            self.logger.info(ds.Time.isel(Time=t_index).values)
             ds_transect = compute_transect(
                 x=x,
                 y=y,
@@ -127,8 +128,8 @@ class Viz(OceanIOStep):
             )
 
             field_name = 'temperature'
-            vmin = ds[field_name].min().values
-            vmax = ds[field_name].max().values
+            vmin = 9.0  # ds[field_name].min().values
+            vmax = 13.0  # ds[field_name].max().values
             mpas_field = ds[field_name].isel(Time=t_index)
             plot_transect(
                 ds_transect=ds_transect,

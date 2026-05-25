@@ -1,3 +1,4 @@
+import glob
 import os
 
 import cmocean  # noqa: F401
@@ -5,7 +6,6 @@ import numpy as np
 import xarray as xr
 
 from polaris.ocean.model import OceanIOStep
-import glob
 from polaris.viz import (
     determine_time_variable,
     get_viz_defaults,

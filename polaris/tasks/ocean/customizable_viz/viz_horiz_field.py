@@ -5,6 +5,7 @@ import numpy as np
 import xarray as xr
 
 from polaris.ocean.model import OceanIOStep
+import glob
 from polaris.viz import (
     determine_time_variable,
     get_viz_defaults,
@@ -104,8 +105,6 @@ class VizHorizField(OceanIOStep):
                 lon_cell <= max_longitude
             )
         cell_indices = np.where(lat_mask & lon_mask)
-        print(f'min lon {min_longitude}, max lon {max_longitude} \n')
-        print(f'min lon {min_longitude_copy}, max lon {max_longitude_copy} \n')
         if len(cell_indices[0]) == 0:
             raise ValueError(
                 f'No cells of {ds_mesh.sizes["nCells"]} cells found within the'
@@ -120,7 +119,7 @@ class VizHorizField(OceanIOStep):
             f'Using {len(cell_indices[0])} cells of '
             f'{ds_mesh.sizes["nCells"]} cells in the mesh'
         )
-        ds_mesh = ds_mesh.isel(nCells=cell_indices[0])
+        #ds_mesh = ds_mesh.isel(nCells=cell_indices[0])
         if 'nVertLevels' in ds_mesh.dims:
             z_target = section.getfloat('z_target')
             if 'restingThickness' in ds_mesh.keys():
@@ -138,156 +137,185 @@ class VizHorizField(OceanIOStep):
             else:
                 z_index = 0
 
-        ds = self.open_model_dataset(
-            self.input_file, self.config, decode_timedelta=False
-        )
+        # Use the full filepath from self.input_file, replacing the placeholder
+        # date with a glob wildcard so glob.glob searches the correct path.
+        pattern = os.path.abspath(self.input_file.replace('0001-01-01', '0010-01-01'))
+        matching_files = sorted(glob.glob(pattern))
 
-        if 'Time' in ds.sizes:
-            t_index = 0
-            # TODO support different time selection from config file
-            ds = ds.isel(Time=t_index)
-
-        prefix, time_variable = determine_time_variable(ds)
-        # Default to empty stamp; only set if we have a usable scalar time
-        time_stamp = ''
-        if time_variable is not None:
-            start_time = ds[time_variable].values
-
-            # If it's a NumPy array, handle scalar vs. multi-value arrays
-            if isinstance(start_time, np.ndarray):
-                if start_time.size == 1:
-                    # extract the scalar value
-                    start_time = start_time.item()
-                else:
-                    # multiple times -> no single timestamp to use
-                    start_time = None
-
-            if start_time is not None:
-                # decode bytes if necessary, otherwise convert to string
-                if isinstance(start_time, (bytes, bytearray, np.bytes_)):
-                    start_time = start_time.decode()
-                else:
-                    start_time = str(start_time)
-                time_stamp = f'_{start_time.split("_")[0]}'
-
-        if 'nCells' in ds.dims:
-            ds = ds.isel(nCells=cell_indices[0])
-            if ds.sizes['nCells'] != ds_mesh.sizes['nCells']:
-                raise ValueError(
-                    f'Number of cells in the mesh {ds_mesh.sizes["nCells"]} '
-                    f'and input {ds.sizes["nCells"]} do not match. '
-                )
-        viz_dict = get_viz_defaults()
-
-        if self.config.has_option(section_name, 'colormap_range_percent'):
-            colormap_range_percent = self.config.getfloat(
-                section_name, 'colormap_range_percent'
-            )
+        if not matching_files:
+            print(f'No files found matching {os.path.basename(pattern)}')
         else:
-            colormap_range_percent = 0.0
-        for var_name in self.variables:
-            if 'accumulated' in var_name:
-                full_var_name = var_name
-            else:
-                full_var_name = f'{prefix}{var_name}'
-            if full_var_name not in ds.keys():
-                if f'{prefix}activeTracers_{var_name}' in ds.keys():
-                    full_var_name = f'{prefix}activeTracers_{var_name}'
-                elif var_name == 'columnThickness':
-                    ds[full_var_name] = ds.bottomDepth + ds.ssh
-                else:
-                    print(
-                        f'Skipping {full_var_name}, '
-                        f'not found in {self.input_file}'
+            print(f'Found {len(matching_files)} files matching pattern')
+
+        for input_file in matching_files:
+            print(input_file)
+            ds_all = xr.open_dataset(input_file)
+            #ds_all = self.open_model_dataset(
+            #    input_file, self.config, decode_timedelta=False
+            #)
+            ice_filename = input_file.replace('mpaso.hist.am.highFrequencyOutput','mpassi.hist.am.timeSeriesStatsDaily')
+            ice_filename = ice_filename.replace('_00.00.00','')
+            ds_ice = xr.open_dataset(ice_filename)
+            #if 'Time' in ds.sizes:
+            #    t_index = 0
+                # TODO support different time selection from config file
+            #for t_index in range(ds.sizes['Time']):
+            for t_index in range(min(ds_all.sizes['Time'],3)):
+                ds = ds_all.isel(Time=t_index)
+                ds_i = ds_ice.isel(Time=t_index)
+
+                prefix, time_variable = determine_time_variable(ds)
+                # Default to empty stamp; only set if we have a usable scalar time
+                time_stamp = ''
+                if time_variable is not None:
+                    start_time = ds[time_variable].values
+
+                    # If it's a NumPy array, handle scalar vs. multi-value arrays
+                    if isinstance(start_time, np.ndarray):
+                        if start_time.size == 1:
+                            # extract the scalar value
+                            start_time = start_time.item()
+                        else:
+                            # multiple times -> no single timestamp to use
+                            start_time = None
+
+                    if start_time is not None:
+                        # decode bytes if necessary, otherwise convert to string
+                        if isinstance(start_time, (bytes, bytearray, np.bytes_)):
+                            start_time = start_time.decode()
+                        else:
+                            start_time = str(start_time)
+                        time_stamp = f'_{start_time.split("_")[0]}'
+
+                #if 'nCells' in ds.dims:
+                #    ds = ds.isel(nCells=cell_indices[0])
+                #    if ds.sizes['nCells'] != ds_mesh.sizes['nCells']:
+                #        raise ValueError(
+                #            f'Number of cells in the mesh {ds_mesh.sizes["nCells"]} '
+                #            f'and input {ds.sizes["nCells"]} do not match. '
+                #        )
+                viz_dict = get_viz_defaults()
+
+                if self.config.has_option(section_name, 'colormap_range_percent'):
+                    colormap_range_percent = self.config.getfloat(
+                        section_name, 'colormap_range_percent'
                     )
-                    continue
-            print(f'Plotting {full_var_name}')
-            filename_suffix = ''
-            mpas_field = ds[full_var_name]
-            if 'nVertLevels' in mpas_field.sizes:
-                mpas_field = mpas_field.isel(nVertLevels=z_index)
-                if z_index != 0:
-                    filename_suffix = f'_z{z_index}'
-
-            if self.config.has_option(section_name, 'colormap_name'):
-                cmap = self.config.get(section_name, 'colormap_name')
-            else:
-                if var_name in viz_dict.keys():
-                    cmap = viz_dict[var_name]['colormap']
                 else:
-                    cmap = viz_dict['default']['colormap']
-                self.config.set(section_name, 'colormap_name', value=cmap)
+                    colormap_range_percent = 0.0
+                for var_name in self.variables:
+                    if 'accumulated' in var_name:
+                        full_var_name = var_name
+                    else:
+                        full_var_name = f'{prefix}{var_name}'
+                    if full_var_name not in ds.keys():
+                        if f'{prefix}activeTracers_{var_name}' in ds.keys():
+                            full_var_name = f'{prefix}activeTracers_{var_name}'
+                        elif var_name == 'columnThickness':
+                            ds[full_var_name] = ds.bottomDepth + ds.ssh
+                        else:
+                            print(
+                                f'Skipping {full_var_name}, '
+                                f'not found in {self.input_file}'
+                            )
+                            continue
+                    print(f'Plotting {full_var_name}')
+                    filename_suffix = ''
+                    mpas_field = ds[full_var_name]
+                    #mpas_field[mpas_field == 0] = np.nan
+                    if 'nVertLevels' in mpas_field.sizes:
+                        mpas_field = mpas_field.isel(nVertLevels=z_index)
+                        if z_index != 0:
+                            filename_suffix = f'_z{z_index}'
 
-            if colormap_range_percent > 0.0:
-                vmin = np.percentile(mpas_field.values, colormap_range_percent)
-                vmax = np.percentile(
-                    mpas_field.values, 100.0 - colormap_range_percent
-                )
-            else:
-                vmin = mpas_field.min().values
-                vmax = mpas_field.max().values
+                    if self.config.has_option(section_name, 'colormap_name'):
+                        cmap = self.config.get(section_name, 'colormap_name')
+                    else:
+                        if var_name in viz_dict.keys():
+                            cmap = viz_dict[var_name]['colormap']
+                        else:
+                            cmap = viz_dict['default']['colormap']
+                        self.config.set(section_name, 'colormap_name', value=cmap)
 
-            if self.config.has_option(
-                section_name, 'vmin'
-            ) and self.config.has_option(section_name, 'vmax'):
-                vmin = section.getfloat('vmin')
-                vmax = section.getfloat('vmax')
-            elif (
-                cmap == 'cmo.balance'
-                or 'vertVelocityTop' in var_name
-                or 'Tendency' in var_name
-                or 'Flux' in var_name
-            ):
-                vmax = max(abs(vmin), abs(vmax))
-                vmin = -vmax
+                    if colormap_range_percent > 0.0:
+                        vmin = np.percentile(mpas_field.values, colormap_range_percent)
+                        vmax = np.percentile(
+                            mpas_field.values, 100.0 - colormap_range_percent
+                        )
+                    else:
+                        vmin = mpas_field.min().values
+                        vmax = mpas_field.max().values
 
-            self.config.set(
-                section_name,
-                'norm_args',
-                value='{"vmin": ' + str(vmin) + ', "vmax": ' + str(vmax) + '}',
-            )
+                    if self.config.has_option(
+                        section_name, 'vmin'
+                    ) and self.config.has_option(section_name, 'vmax'):
+                        vmin = section.getfloat('vmin')
+                        vmax = section.getfloat('vmax')
+                    elif (
+                        cmap == 'cmo.balance'
+                        or 'vertVelocityTop' in var_name
+                        or 'Tendency' in var_name
+                        or 'Flux' in var_name
+                    ):
+                        vmax = max(abs(vmin), abs(vmax))
+                        vmin = -vmax
 
-            if var_name in viz_dict.keys():
-                units = viz_dict[var_name]['units']
-            else:
-                units = viz_dict['default']['units']
+                    self.config.set(
+                        section_name,
+                        'norm_args',
+                        value='{"vmin": ' + str(vmin) + ', "vmax": ' + str(vmax) + '}',
+                    )
 
-            if os.path.exists(self.transect_file):
-                ds_transect = xr.open_dataset(self.transect_file)
-            else:
-                ds_transect = None
-            # Only apply regional bounds for cell-centered fields
-            if 'nEdges' in mpas_field.dims or 'nVertices' in mpas_field.dims:
-                descriptor = plot_global_mpas_field(
-                    mesh_filename=self.mesh_file,
-                    da=mpas_field,
-                    out_filename=f'{var_name}_horiz{time_stamp}{filename_suffix}.png',
-                    config=self.config,
-                    colormap_section='customizable_viz_horiz_field',
-                    descriptor=descriptor,
-                    colorbar_label=f'{var_name} [{units}]',
-                    plot_land=True,
-                    projection_name=projection_name,
-                    ds_transect=ds_transect,
-                    central_longitude=central_longitude,
-                )
-            elif 'nCells' in mpas_field.dims and 'nVertices' in ds_mesh.dims:
-                descriptor = plot_global_mpas_field(
-                    mesh_filename=self.mesh_file,
-                    da=mpas_field,
-                    out_filename=f'{var_name}_horiz{time_stamp}{filename_suffix}.png',
-                    config=self.config,
-                    colormap_section='customizable_viz_horiz_field',
-                    descriptor=descriptor,
-                    colorbar_label=f'{var_name} [{units}]',
-                    plot_land=True,
-                    projection_name=projection_name,
-                    central_longitude=central_longitude,
-                    cell_indices=cell_indices[0],
-                    ds_transect=ds_transect,
-                )
-            else:
-                raise ValueError(
-                    f'{var_name} does not have expected '
-                    'dimensions of nCells, nEdges, or nVertices'
-                )
+                    if var_name in viz_dict.keys():
+                        units = viz_dict[var_name]['units']
+                    else:
+                        units = viz_dict['default']['units']
+
+                    if os.path.exists(self.transect_file):
+                        ds_transect = xr.open_dataset(self.transect_file)
+                    else:
+                        ds_transect = None
+                    # Only apply regional bounds for cell-centered fields
+                    if 'nEdges' in mpas_field.dims or 'nVertices' in mpas_field.dims:
+                        descriptor = plot_global_mpas_field(
+                            mesh_filename=self.mesh_file,
+                            da=mpas_field,
+                            out_filename=f'{var_name}_horiz{time_stamp}{filename_suffix}.png',
+                            config=self.config,
+                            colormap_section='customizable_viz_horiz_field',
+                            descriptor=descriptor,
+                            colorbar_label=f'{var_name} [{units}]',
+                            plot_land=True,
+                            projection_name=projection_name,
+                            ds_transect=ds_transect,
+                            central_longitude=central_longitude,
+                        )
+                    elif 'nCells' in mpas_field.dims and 'nVertices' in ds_mesh.dims:
+                        ice_field = ds_i['timeDaily_avg_iceAreaCell']
+                        ice_field[ice_field < 0.05] = 0.0
+                        #ice_field[ice_field == 0] = np.nan
+                        descriptor = plot_global_mpas_field(
+                            mesh_filename=self.mesh_file,
+                            da=mpas_field,
+                            da_2=ice_field,
+                            #da_back=ds['relativeVorticityAtSurface'],
+                            da_back=ds['temperatureAtSurface'],
+                            #da_back=ds['temperatureAvgTopto0100'],
+                            out_filename=f'{var_name}_horiz{time_stamp}{filename_suffix}.png',
+                            config=self.config,
+                            colormap_section='customizable_viz_horiz_field',
+                            descriptor=descriptor,
+                            colorbar_label=f'{var_name} [{units}]',
+                            plot_land=True,
+                            projection_name=projection_name,
+                            min_latitude=min_latitude,
+                            max_latitude=max_latitude,
+                            min_longitude=-180,
+                            max_longitude=180,
+                            central_longitude=central_longitude,
+                            ds_transect=ds_transect,
+                        )
+                    else:
+                        raise ValueError(
+                            f'{var_name} does not have expected '
+                            'dimensions of nCells, nEdges, or nVertices'
+                        )

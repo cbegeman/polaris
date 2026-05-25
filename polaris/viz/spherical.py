@@ -17,6 +17,8 @@ from polaris.viz.style import use_mplstyle
 
 def plot_global_mpas_field(
     da,
+    da_2,
+    da_back,
     out_filename,
     config,
     colormap_section,
@@ -33,6 +35,10 @@ def plot_global_mpas_field(
     cell_indices=None,
     ds_transect=None,
     enforce_aspect_ratio=False,
+    min_latitude=-90,
+    max_latitude=90,
+    min_longitude=0,
+    max_longitude=360,
 ):
     """
     Plots a data set as a longitude-latitude map
@@ -122,8 +128,8 @@ def plot_global_mpas_field(
             )
         mesh_ds = xr.open_dataset(mesh_filename)
         mesh_ds.attrs['is_periodic'] = 'NO'
-        if cell_indices is not None:
-            mesh_ds = mesh_ds.isel(nCells=cell_indices)
+        #if cell_indices is not None:
+        #    mesh_ds = mesh_ds.isel(nCells=cell_indices)
         descriptor = mosaic.Descriptor(
             mesh_ds,
             projection=projection,
@@ -154,10 +160,23 @@ def plot_global_mpas_field(
     if plot_land:
         _add_land_lakes_coastline(ax)
 
+    #0-100 temp pc0 = mosaic.polypcolor(ax, descriptor, da_back, cmap=cmocean.cm.thermal, vmin=-2, vmax=8)
+    pc0 = mosaic.polypcolor(ax, descriptor, da_back, cmap=cmocean.cm.thermal, vmin=-2, vmax=8)
+    #pc0 = mosaic.polypcolor(ax, descriptor, da_back, cmap=cmocean.cm.curl, vmin=-1e-5, vmax=1e-5)
+    pc2 = mosaic.polypcolor(ax, descriptor, da_2, cmap=cmocean.cm.ice, vmin=0.05, vmax=1)
     pc = mosaic.polypcolor(ax, descriptor, da, **pcolor_kwargs)
+    extent = [min_longitude, max_longitude, min_latitude, max_latitude]
+    ref_projection = cartopy.crs.PlateCarree()
+    ax.set_extent(extent, crs=ref_projection)
 
     cbar = fig.colorbar(
-        pc, ax=ax, label=colorbar_label, extend='both', shrink=0.6
+        pc, ax=ax, label='land ice melt flux', extend='both', shrink=0.6
+    )
+    cbar2 = fig.colorbar(
+        pc2, ax=ax, label='ice concentration', extend='both', shrink=0.6
+    )
+    cbar0 = fig.colorbar(
+        pc0, ax=ax, label='temperature', extend='both', shrink=0.6
     )
     if ds_transect is not None:
         ax.plot(
@@ -186,7 +205,7 @@ def plot_global_mpas_field(
         cbar.set_ticklabels([f'{tick}' for tick in ticks])
 
     fig.savefig(out_filename, bbox_inches='tight', pad_inches=0.1)
-
+    return descriptor
 
 def plot_global_lat_lon_field(
     lon,
@@ -418,7 +437,7 @@ def _add_land_lakes_coastline(ax, ice_shelves=True):
         'physical',
         'land',
         '50m',
-        edgecolor='brown',
+        edgecolor='k',
         facecolor='none',
     )
     lakes_50m = cartopy.feature.NaturalEarthFeature(

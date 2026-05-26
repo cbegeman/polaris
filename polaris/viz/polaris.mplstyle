@@ -2,9 +2,9 @@
 
 figure.titlesize: 16
 figure.labelsize: 14
-figure.dpi: 500
+figure.dpi: 1000
 
-savefig.dpi: 500
+savefig.dpi: 1000
 
 legend.fontsize: 14
 

@@ -142,6 +142,7 @@ def plot_global_mpas_field(
         constrained_layout=True,
         subplot_kw=dict(projection=projection),
     )
+    ax.set_facecolor(cartopy.feature.COLORS['land'])
 
     if title is not None:
         fig.suptitle(title, y=0.935)
@@ -161,22 +162,22 @@ def plot_global_mpas_field(
         _add_land_lakes_coastline(ax)
 
     #0-100 temp pc0 = mosaic.polypcolor(ax, descriptor, da_back, cmap=cmocean.cm.thermal, vmin=-2, vmax=8)
-    pc0 = mosaic.polypcolor(ax, descriptor, da_back, cmap=cmocean.cm.thermal, vmin=-2, vmax=8)
+    pc0 = mosaic.polypcolor(ax, descriptor, da_back, cmap=cmocean.cm.thermal, vmin=-2, vmax=8, edgecolors='face')
     #pc0 = mosaic.polypcolor(ax, descriptor, da_back, cmap=cmocean.cm.curl, vmin=-1e-5, vmax=1e-5)
-    pc2 = mosaic.polypcolor(ax, descriptor, da_2, cmap=cmocean.cm.ice, vmin=0.05, vmax=1)
+    pc2 = mosaic.polypcolor(ax, descriptor, da_2, cmap=cmocean.cm.ice, vmin=0.05, vmax=1, edgecolors='face')
     pc = mosaic.polypcolor(ax, descriptor, da, **pcolor_kwargs)
     extent = [min_longitude, max_longitude, min_latitude, max_latitude]
     ref_projection = cartopy.crs.PlateCarree()
     ax.set_extent(extent, crs=ref_projection)
 
     cbar = fig.colorbar(
-        pc, ax=ax, label='land ice melt flux', extend='both', shrink=0.6
+        pc, ax=ax, label='land ice melt flux (kg m$^{-2}$ s$^{-1}$)', extend='both', shrink=0.6
     )
     cbar2 = fig.colorbar(
-        pc2, ax=ax, label='ice concentration', extend='both', shrink=0.6
+        pc2, ax=ax, label='sea ice concentration', extend='both', shrink=0.6
     )
     cbar0 = fig.colorbar(
-        pc0, ax=ax, label='temperature', extend='both', shrink=0.6
+        pc0, ax=ax, label='ocean surface temperature ($^{\circ}$C)', extend='both', shrink=0.6
     )
     if ds_transect is not None:
         ax.plot(
@@ -203,8 +204,8 @@ def plot_global_mpas_field(
     if ticks is not None:
         cbar.set_ticks(ticks)
         cbar.set_ticklabels([f'{tick}' for tick in ticks])
-
     fig.savefig(out_filename, bbox_inches='tight', pad_inches=0.1)
+    plt.close(fig)
     return descriptor
 
 def plot_global_lat_lon_field(
@@ -437,7 +438,7 @@ def _add_land_lakes_coastline(ax, ice_shelves=True):
         'physical',
         'land',
         '50m',
-        edgecolor='k',
+        edgecolor='none',
         facecolor='none',
     )
     lakes_50m = cartopy.feature.NaturalEarthFeature(

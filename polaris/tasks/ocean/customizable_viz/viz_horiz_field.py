@@ -139,7 +139,7 @@ class VizHorizField(OceanIOStep):
 
         # Use the full filepath from self.input_file, replacing the placeholder
         # date with a glob wildcard so glob.glob searches the correct path.
-        pattern = os.path.abspath(self.input_file.replace('0001-01-01', '0010-01-01'))
+        pattern = os.path.abspath(self.input_file.replace('0020-01-01', '002*'))
         matching_files = sorted(glob.glob(pattern))
 
         if not matching_files:
@@ -154,13 +154,13 @@ class VizHorizField(OceanIOStep):
             #    input_file, self.config, decode_timedelta=False
             #)
             ice_filename = input_file.replace('mpaso.hist.am.highFrequencyOutput','mpassi.hist.am.timeSeriesStatsDaily')
+            ice_filename = ice_filename.replace('ocn/hist','ice/hist')
             ice_filename = ice_filename.replace('_00.00.00','')
             ds_ice = xr.open_dataset(ice_filename)
             #if 'Time' in ds.sizes:
             #    t_index = 0
                 # TODO support different time selection from config file
-            #for t_index in range(ds.sizes['Time']):
-            for t_index in range(min(ds_all.sizes['Time'],3)):
+            for t_index in range(ds_all.sizes['Time']):
                 ds = ds_all.isel(Time=t_index)
                 ds_i = ds_ice.isel(Time=t_index)
 
@@ -186,7 +186,6 @@ class VizHorizField(OceanIOStep):
                         else:
                             start_time = str(start_time)
                         time_stamp = f'_{start_time.split("_")[0]}'
-
                 #if 'nCells' in ds.dims:
                 #    ds = ds.isel(nCells=cell_indices[0])
                 #    if ds.sizes['nCells'] != ds_mesh.sizes['nCells']:
@@ -218,7 +217,6 @@ class VizHorizField(OceanIOStep):
                                 f'not found in {self.input_file}'
                             )
                             continue
-                    print(f'Plotting {full_var_name}')
                     filename_suffix = ''
                     mpas_field = ds[full_var_name]
                     #mpas_field[mpas_field == 0] = np.nan
@@ -226,6 +224,10 @@ class VizHorizField(OceanIOStep):
                         mpas_field = mpas_field.isel(nVertLevels=z_index)
                         if z_index != 0:
                             filename_suffix = f'_z{z_index}'
+                    #if os.path.exists(f'{var_name}_horiz{time_stamp}{filename_suffix}.png'):
+                    #    print(f'Skipping {var_name}_horiz{time_stamp}{filename_suffix}.png')
+                    #    continue
+                    print(f'Plotting {full_var_name}')
 
                     if self.config.has_option(section_name, 'colormap_name'):
                         cmap = self.config.get(section_name, 'colormap_name')
@@ -284,7 +286,7 @@ class VizHorizField(OceanIOStep):
                             colormap_section='customizable_viz_horiz_field',
                             descriptor=descriptor,
                             colorbar_label=f'{var_name} [{units}]',
-                            plot_land=True,
+                            plot_land=False,
                             projection_name=projection_name,
                             ds_transect=ds_transect,
                             central_longitude=central_longitude,
@@ -305,7 +307,7 @@ class VizHorizField(OceanIOStep):
                             colormap_section='customizable_viz_horiz_field',
                             descriptor=descriptor,
                             colorbar_label=f'{var_name} [{units}]',
-                            plot_land=True,
+                            plot_land=False,
                             projection_name=projection_name,
                             min_latitude=min_latitude,
                             max_latitude=max_latitude,

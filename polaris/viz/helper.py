@@ -28,6 +28,7 @@ viz_dict = {
     'salinity': {'colormap': 'cmo.haline', 'units': r'g/kg'},
     'density': {'colormap': 'cmo.dense', 'units': r'kg/m$^3$'},
     'velocity': {'colormap': 'cmo.balance', 'units': r'm/s'},
+    'normalBarotropicVelocity': {'colormap': 'cmo.balance', 'units': r'm/s'},
     'ssh': {'colormap': 'cmo.delta', 'units': r'm'},
     'landIceFraction': {'colormap': 'cmo.ice', 'units': r''},
     'seaIceFraction': {'colormap': 'cmo.ice', 'units': r''},

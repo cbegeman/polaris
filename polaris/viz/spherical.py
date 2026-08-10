@@ -35,6 +35,7 @@ def plot_global_mpas_field(
     cell_indices=None,
     ds_transect=None,
     enforce_aspect_ratio=False,
+    extent_coord_bounds=None,
 ):
     """
     Plots a data set as a longitude-latitude map
@@ -152,6 +153,7 @@ def plot_global_mpas_field(
 
         if cell_indices is not None:
             mesh_ds = mesh_ds.isel(nCells=cell_indices)
+            da = da.isel(nCells=cell_indices)
         descriptor = mosaic.Descriptor(
             mesh_ds,
             projection=projection,
@@ -183,6 +185,9 @@ def plot_global_mpas_field(
         _add_land_lakes_coastline(ax)
 
     pc = mosaic.polypcolor(ax, descriptor, da, **pcolor_kwargs)
+    if extent_coord_bounds is not None:
+        ref_projection = cartopy.crs.PlateCarree()
+        ax.set_extent(extent_coord_bounds, crs=ref_projection)
 
     cbar = fig.colorbar(
         pc, ax=ax, label=colorbar_label, extend='both', shrink=0.6
@@ -196,10 +201,14 @@ def plot_global_mpas_field(
         )
 
     if enforce_aspect_ratio:
-        min_latitude = np.rad2deg(mesh_ds.latCell.min().values)
-        max_latitude = np.rad2deg(mesh_ds.latCell.max().values)
-        min_longitude = np.rad2deg(mesh_ds.lonCell.min().values)
-        max_longitude = np.rad2deg(mesh_ds.lonCell.max().values)
+        if extent_coord_bounds is not None:
+            min_longitude, min_latitude = extent_coord_bounds[0]
+            max_longitude, max_latitude = extent_coord_bounds[1]
+        else:
+            min_latitude = np.rad2deg(mesh_ds.latCell.min().values)
+            max_latitude = np.rad2deg(mesh_ds.latCell.max().values)
+            min_longitude = np.rad2deg(mesh_ds.lonCell.min().values)
+            max_longitude = np.rad2deg(mesh_ds.lonCell.max().values)
         geod = Geodesic()
         x_distance = geod.inverse(
             [min_longitude, min_latitude], [max_longitude, min_latitude]

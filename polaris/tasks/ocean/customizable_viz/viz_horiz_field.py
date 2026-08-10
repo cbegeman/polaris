@@ -85,42 +85,11 @@ class VizHorizField(OceanIOStep):
             )
 
         # Normalize longitudes given in [-180, 180] to [0, 360)
-        min_longitude_copy = min_longitude
-        max_longitude_copy = max_longitude
         if min_longitude < 0.0:
             min_longitude = (360.0 + min_longitude) % 360.0
         if max_longitude < 0.0:
             max_longitude = (360.0 + max_longitude) % 360.0
 
-        lat_cell = np.rad2deg(ds_mesh['latCell'])
-        lon_cell = np.rad2deg(ds_mesh['lonCell'])
-        lat_mask = (lat_cell >= min_latitude) & (lat_cell <= max_latitude)
-        if min_longitude >= max_longitude:
-            lon_mask = (lon_cell >= min_longitude) | (
-                lon_cell <= max_longitude
-            )
-        else:
-            lon_mask = (lon_cell >= min_longitude) & (
-                lon_cell <= max_longitude
-            )
-        cell_indices = np.where(lat_mask & lon_mask)
-        print(f'min lon {min_longitude}, max lon {max_longitude} \n')
-        print(f'min lon {min_longitude_copy}, max lon {max_longitude_copy} \n')
-        if len(cell_indices[0]) == 0:
-            raise ValueError(
-                f'No cells of {ds_mesh.sizes["nCells"]} cells found within the'
-                ' specified lat/lon bounds. Please adjust the min/max '
-                'latitude/longitude values to be within the bounds of the '
-                f'dataset: latitude '
-                f'{lat_cell.min().values},{lat_cell.max().values} \n'
-                f'longitude {lon_cell.min().values},{lon_cell.max().values}'
-                f'min lon {min_longitude}, max lon {max_longitude} \n'
-            )
-        print(
-            f'Using {len(cell_indices[0])} cells of '
-            f'{ds_mesh.sizes["nCells"]} cells in the mesh'
-        )
-        ds_mesh = ds_mesh.isel(nCells=cell_indices[0])
         if 'nVertLevels' in ds_mesh.dims:
             z_target = section.getfloat('z_target')
             if 'restingThickness' in ds_mesh.keys():
@@ -143,8 +112,9 @@ class VizHorizField(OceanIOStep):
         )
 
         if 'Time' in ds.sizes:
-            t_index = 0
-            # TODO support different time selection from config file
+            t_index = self.config.getint(
+                'customizable_viz_horiz_field', 'time_index'
+            )
             ds = ds.isel(Time=t_index)
 
         prefix, time_variable = determine_time_variable(ds)
@@ -170,13 +140,6 @@ class VizHorizField(OceanIOStep):
                     start_time = str(start_time)
                 time_stamp = f'_{start_time.split("_")[0]}'
 
-        if 'nCells' in ds.dims:
-            ds = ds.isel(nCells=cell_indices[0])
-            if ds.sizes['nCells'] != ds_mesh.sizes['nCells']:
-                raise ValueError(
-                    f'Number of cells in the mesh {ds_mesh.sizes["nCells"]} '
-                    f'and input {ds.sizes["nCells"]} do not match. '
-                )
         viz_dict = get_viz_defaults()
 
         if self.config.has_option(section_name, 'colormap_range_percent'):
@@ -219,9 +182,12 @@ class VizHorizField(OceanIOStep):
                 self.config.set(section_name, 'colormap_name', value=cmap)
 
             if colormap_range_percent > 0.0:
-                vmin = np.percentile(mpas_field.values, colormap_range_percent)
+                mask = np.isfinite(mpas_field.values)
+                vmin = np.percentile(
+                    mpas_field.values[mask], colormap_range_percent
+                )
                 vmax = np.percentile(
-                    mpas_field.values, 100.0 - colormap_range_percent
+                    mpas_field.values[mask], 100.0 - colormap_range_percent
                 )
             else:
                 vmin = mpas_field.min().values
@@ -240,7 +206,6 @@ class VizHorizField(OceanIOStep):
             ):
                 vmax = max(abs(vmin), abs(vmax))
                 vmin = -vmax
-
             self.config.set(
                 section_name,
                 'norm_args',
@@ -283,8 +248,11 @@ class VizHorizField(OceanIOStep):
                     plot_land=True,
                     projection_name=projection_name,
                     central_longitude=central_longitude,
-                    cell_indices=cell_indices[0],
                     ds_transect=ds_transect,
+                    extent_coord_bounds=[
+                        [min_longitude, min_latitude],
+                        [max_longitude, max_latitude],
+                    ],
                 )
             else:
                 raise ValueError(
